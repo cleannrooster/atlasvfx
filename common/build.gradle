@@ -1,0 +1,20 @@
+architectury {
+    common(rootProject.enabled_platforms.split(','))
+}
+
+dependencies {
+    // Compiled against, never shipped: the loader modules bring their own.
+    modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
+    modApi "dev.architectury:architectury:$rootProject.architectury_api_version"
+
+    // Plain JUnit, without a Minecraft harness: what is worth testing here is arithmetic that
+    // takes numbers and returns numbers. Loom keeps the game on configurations of its own, so
+    // the tests borrow main's compile classpath wholesale - the classes they touch mention game
+    // types in their signatures, and the JVM has to resolve those to load them. Wrapped in a
+    // closure so it resolves lazily, after Loom has finished wiring main up.
+    testImplementation project.files({ sourceSets.main.compileClasspath }, sourceSets.main.output)
+
+    testImplementation platform("org.junit:junit-bom:5.10.2")
+    testImplementation "org.junit.jupiter:junit-jupiter"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}

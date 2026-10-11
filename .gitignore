@@ -1,0 +1,9 @@
+.gradle/
+build/
+run/
+logs/
+.architectury-transformer/
+.idea/
+*.iml
+out/
+.claude
