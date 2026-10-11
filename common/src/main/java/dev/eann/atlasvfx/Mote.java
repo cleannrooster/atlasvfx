@@ -149,13 +149,19 @@ public final class Mote {
         x += vx;
         y += vy;
         z += vz;
-        Motion motion = recipe.motion();
-        // Thrown things slow quickly; drifting things hardly at all.
-        double drag = motion == Motion.BURST ? 0.86 : 0.96;
+        double drag = drag(recipe.motion());
         vx *= drag;
         vy = vy * drag - recipe.gravity();
         vz *= drag;
         return true;
+    }
+
+    /**
+     * The share of its speed a free mote keeps each tick. Thrown things slow quickly; drifting
+     * things hardly at all.
+     */
+    public static double drag(Motion motion) {
+        return motion == Motion.BURST ? 0.86 : 0.96;
     }
 
     /**

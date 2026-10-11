@@ -73,7 +73,29 @@ public final class FxShapes {
      * @param tier 0 to 2: how many forks branch off it
      */
     public static FxShape arc(FxStyle style, Vec3d from, Vec3d to, int tier, long seed) {
-        return new Arc(style, from, to, tier, seed);
+        return arc(style, from, to, tier, seed, Arc.DEFAULT_TICKS);
+    }
+
+    /**
+     * As above, lasting {@code ticks}: it is redrawn on a new path every one of them, so a longer
+     * arc is a longer flicker rather than a slower fade.
+     */
+    public static FxShape arc(FxStyle style, Vec3d from, Vec3d to, int tier, long seed, int ticks) {
+        return new Arc(style, from, to, tier, seed, ticks);
+    }
+
+    /**
+     * A blast one way: a flare at the mouth, streaks of light shooting out within the cone, and
+     * the style's debris and accent thrown along it to about {@code reach} blocks. A gust, a
+     * shockwave out of a staff, a spray of water - the aimed sibling of {@link #explosion}.
+     *
+     * @param axis      the way it faces; need not be of unit length
+     * @param halfAngle half the cone's opening, in degrees
+     * @param tier      0 to 2, for how much it throws
+     */
+    public static FxShape cone(FxStyle style, Vec3d at, Vec3d axis, float halfAngle, float reach, int tier,
+                               long seed) {
+        return new Cone(style, at, axis, halfAngle, reach, tier, seed);
     }
 
     // ---- motes alone ---------------------------------------------------------------------------------------
@@ -360,23 +382,27 @@ public final class FxShapes {
      * random path every tick so it flickers, with forks off it for a stronger one.
      */
     private static final class Arc implements FxShape.Timed {
+        static final int DEFAULT_TICKS = 5;
+
         private final FxStyle style;
         private final Vec3d from;
         private final Vec3d to;
         private final int tier;
         private final long seed;
+        private final int ticks;
 
-        Arc(FxStyle style, Vec3d from, Vec3d to, int tier, long seed) {
+        Arc(FxStyle style, Vec3d from, Vec3d to, int tier, long seed, int ticks) {
             this.style = style;
             this.from = from;
             this.to = to;
             this.tier = clampTier(tier);
             this.seed = seed;
+            this.ticks = Math.max(1, ticks);
         }
 
         @Override
         public int ticks() {
-            return 5;
+            return ticks;
         }
 
         @Override
@@ -420,6 +446,84 @@ public final class FxShapes {
             }
             path.add(to);
             return path;
+        }
+    }
+
+    /**
+     * A blast one way. Its streaks are picked once from its seed, so they hold still frame to
+     * frame and shoot out along fixed lines; a shock ring rides the front of it, as wide as the
+     * cone is at that distance.
+     */
+    private static final class Cone implements FxShape.Timed {
+        private final FxStyle style;
+        private final Vec3d at;
+        private final Vec3d axis;
+        private final float halfAngle;
+        private final float reach;
+        private final int tier;
+        private final Vector3f[] streaks;
+        private final float[] lengths;
+        private final Quaternionf facing;
+
+        Cone(FxStyle style, Vec3d at, Vec3d axis, float halfAngle, float reach, int tier, long seed) {
+            this.style = style;
+            this.at = at;
+            Vec3d unit = axis.lengthSquared() < 1.0e-8 ? new Vec3d(0.0, 1.0, 0.0) : axis.normalize();
+            this.axis = unit;
+            this.halfAngle = MathHelper.clamp(halfAngle, 0.0f, 89.0f);
+            this.reach = Math.max(0.1f, reach);
+            this.tier = clampTier(tier);
+            Random random = new Random(seed);
+            Vector3f middle = new Vector3f((float) unit.x, (float) unit.y, (float) unit.z);
+            int count = 6 + this.tier * 3;
+            this.streaks = new Vector3f[count];
+            this.lengths = new float[count];
+            for (int i = 0; i < count; i++) {
+                streaks[i] = FxCone.sample(middle, this.halfAngle, random);
+                lengths[i] = 0.6f + random.nextFloat() * 0.4f;
+            }
+            this.facing = new Quaternionf().rotationTo(0.0f, 0.0f, 1.0f, middle.x, middle.y, middle.z);
+        }
+
+        @Override
+        public int ticks() {
+            return 10;
+        }
+
+        @Override
+        public void open(FxWorld world, float density) {
+            float more = (1.0f + 0.6f * tier) * density;
+            world.jet(style.debris(), at, axis, halfAngle, reach, Math.max(1, Math.round(10 * more)));
+            world.jet(style.accent(), at, axis, halfAngle * 0.8f, reach * 0.8f, Math.max(1, Math.round(4 * more)));
+        }
+
+        @Override
+        public void draw(FxPainter painter, @Nullable ClientWorld world, FxLife life, float tickDelta) {
+            float t = life.progress(tickDelta, ticks());
+            float fade = (1.0f - t) * (1.0f - t);
+            // Out fast and easing off, the way a blast spends itself.
+            float out = 1.0f - (1.0f - t) * (1.0f - t);
+            float mouth = 0.3f + 0.1f * tier;
+            painter.glow(at, mouth * (1.0f + 0.5f * out), style.glow(), 0.8f * fade);
+            painter.glow(at, mouth * 0.4f, style.hot(), fade);
+
+            float width = (0.1f + 0.04f * tier) * (1.0f - 0.6f * t);
+            for (int i = 0; i < streaks.length; i++) {
+                Vector3f d = streaks[i];
+                float length = reach * lengths[i];
+                float head = length * out;
+                float tail = length * Math.max(0.0f, out - 0.4f);
+                Vec3d from = at.add(d.x * tail, d.y * tail, d.z * tail);
+                Vec3d to = at.add(d.x * head, d.y * head, d.z * head);
+                painter.beam(from, to, width, style.glow(), 0.7f * fade);
+                painter.beam(from, to, width * 0.35f, style.hot(), 0.9f * fade);
+            }
+
+            float distance = reach * out * 0.85f;
+            float radius = distance * (float) Math.tan(Math.toRadians(halfAngle));
+            Vec3d front = at.add(axis.multiply(distance));
+            painter.ring(front, facing, Math.max(0.1f, radius), Math.max(0.05f, radius * 0.18f) * (1.0f - t),
+                    style.glow(), 0.6f * fade);
         }
     }
 

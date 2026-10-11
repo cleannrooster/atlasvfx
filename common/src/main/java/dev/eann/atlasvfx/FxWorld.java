@@ -135,6 +135,24 @@ public final class FxWorld {
         }
     }
 
+    /**
+     * Motes thrown one way: each along a direction within {@code halfAngle} degrees of
+     * {@code axis}, hard enough to come to rest about {@code reach} blocks out - a little short
+     * or long of it, so the front is ragged. A gust, a jet, a torrent; called every tick from a
+     * shape that lasts, it is a stream.
+     *
+     * @param axis the way the cone faces; need not be of unit length
+     */
+    public void jet(MoteRecipe recipe, Vec3d at, Vec3d axis, float halfAngle, float reach, int count) {
+        Vector3f middle = new Vector3f((float) axis.x, (float) axis.y, (float) axis.z);
+        double speed = FxCone.launchSpeed(recipe.motion(), reach);
+        for (int i = 0; i < count && motes.hasRoom(); i++) {
+            Vector3f v = FxCone.sample(middle, halfAngle, random);
+            double s = speed * (0.55 + random.nextDouble() * 0.6);
+            motes.add(Mote.free(recipe, at, new Vec3d(v.x * s, v.y * s, v.z * s), random, 1.0f));
+        }
+    }
+
     /** Motes born anywhere within {@code spread} of a point, drifting gently. */
     public void scatter(MoteRecipe recipe, Vec3d at, float spread, int count, double drift) {
         for (int i = 0; i < count && motes.hasRoom(); i++) {

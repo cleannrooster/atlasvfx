@@ -1,3 +1,23 @@
+# 0.3.0
+
+Effects can now be aimed: thrown one way, within a cone, rather than in every direction.
+
+Added:
+
+- `FxWorld.jet(recipe, at, axis, halfAngle, reach, count)`: motes thrown along directions within a
+  cone, each hard enough to come to rest about `reach` blocks out, with a ragged front. Called once
+  it is a gust; called every tick from a shape that lasts, it is a stream.
+- `FxShapes.cone(style, at, axis, halfAngle, reach, tier, seed)`: a blast one way - a flare at the
+  mouth, streaks of light shooting out along fixed lines inside the cone, a shock ring riding its
+  front as wide as the cone is there, and the style's debris and accent thrown along it.
+- `FxCone`: `sample(axis, halfAngle, random)`, a direction picked evenly over the cone's cap so a
+  wide cone fills to its edge; `launchSpeed(motion, reach)`, the speed that carries a free mote of
+  that motion a given distance.
+- `FxShapes.arc(style, from, to, tier, seed, ticks)`: an arc that lasts as long as asked, redrawn on
+  a new path every tick of it - a longer flicker rather than a slower fade.
+- `Mote.drag(motion)`: the share of its speed a free mote keeps each tick, now in one place.
+- `/atlasvfx cone [narrow|wide] [far] [heavy] [#RRGGBB]`.
+
 # 0.2.0
 
 Shapes can now last as long as they need to, and whoever starts one can hold on to it.

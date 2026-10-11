@@ -39,6 +39,11 @@ import java.util.Random;
  * {@code line}; a number of ticks until it lands (40 by default); {@code grow}, {@code sweep} or
  * {@code pulse} for how it fills; {@code follow} to have it follow the player until three
  * quarters of the way in; and a colour as {@code #RRGGBB}.</p>
+ *
+ * <p>{@code /atlasvfx cone [options]} blasts a cone from the player's eyes, the way they look.
+ * Options: {@code narrow} or {@code wide} for its opening (35 degrees each side by default),
+ * {@code far} to throw it twice as far, {@code heavy} for the most it throws, and a colour as
+ * {@code #RRGGBB}.</p>
  */
 final class AtlasVfxCommands {
 
@@ -60,7 +65,8 @@ final class AtlasVfxCommands {
         ClientCommandRegistrationEvent.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
                 ClientCommandRegistrationEvent.literal(AtlasVfx.MOD_ID)
                         .then(withOptions("slash", AtlasVfxCommands::slash))
-                        .then(withOptions("telegraph", AtlasVfxCommands::telegraph))));
+                        .then(withOptions("telegraph", AtlasVfxCommands::telegraph))
+                        .then(withOptions("cone", AtlasVfxCommands::cone))));
     }
 
     /** A subcommand taking its options as the rest of the line, or none. */
@@ -173,6 +179,50 @@ final class AtlasVfxCommands {
             FxWorld.get().add(new At(SWING_TICKS - 1, handle::flash), FxDensity.FULL);
         }
         return 1;
+    }
+
+    private static int cone(CommandContext<ClientCommandSourceStack> context, String options) {
+        ClientCommandSourceStack source = context.getSource();
+        ClientPlayerEntity player = source.arch$getPlayer();
+        if (player == null) {
+            return 0;
+        }
+        float halfAngle = 35.0f;
+        float reach = 6.0f;
+        int tier = 1;
+        int colour = DEFAULT_COLOUR;
+        for (String word : options.trim().toLowerCase(Locale.ROOT).split("\\s+")) {
+            switch (word) {
+                case "" -> {
+                }
+                case "narrow" -> halfAngle = 15.0f;
+                case "wide" -> halfAngle = 60.0f;
+                case "far" -> reach = 12.0f;
+                case "heavy" -> tier = 2;
+                default -> {
+                    Integer parsed = colour(word);
+                    if (parsed == null) {
+                        source.arch$sendFailure(Text.literal("Unknown option: " + word
+                                + " (narrow, wide, far, heavy, #RRGGBB)"));
+                        return 0;
+                    }
+                    colour = parsed;
+                }
+            }
+        }
+        Vec3d look = player.getRotationVec(1.0f);
+        Vec3d mouth = player.getEyePos().subtract(0.0, player.getHeight() * EYE_DROP, 0.0).add(look.multiply(0.6));
+        FxWorld.get().play(FxShapes.cone(coneStyle(colour), mouth, look, halfAngle, reach, tier, RANDOM.nextLong()),
+                FxDensity.FULL);
+        return 1;
+    }
+
+    /** A plain style from one colour, for looking at shapes with nothing of a mod's own behind them. */
+    private static FxStyle coneStyle(int colour) {
+        int hot = FxColor.mix(colour, FxColor.WHITE, 0.7f);
+        MoteRecipe spark = new MoteRecipe(FxSprite.particleRun("generic", 8), FxBlend.EMISSIVE, Motion.BURST,
+                colour, 0.14f, 14, 0.0f, 0.05f, 0.0f, 0.0f, 0.1f, true, false);
+        return new FxStyle(colour, hot, spark, spark.tinted(hot), spark, null, null, colour, false);
     }
 
     @Nullable
