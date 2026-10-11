@@ -118,7 +118,7 @@ public final class FxShapes {
 
     // ---- the shapes ----------------------------------------------------------------------------------------
 
-    private static final class Pulse implements FxShape {
+    private static final class Pulse implements FxShape.Timed {
         private final FxStyle style;
         private final Vec3d at;
         private final float size;
@@ -132,7 +132,7 @@ public final class FxShapes {
         }
 
         @Override
-        public int life() {
+        public int ticks() {
             return 8;
         }
 
@@ -143,8 +143,8 @@ public final class FxShapes {
         }
 
         @Override
-        public void draw(FxPainter painter, @Nullable ClientWorld world, int age, float tickDelta) {
-            float t = FxShape.progress(age, tickDelta, life());
+        public void draw(FxPainter painter, @Nullable ClientWorld world, FxLife life, float tickDelta) {
+            float t = life.progress(tickDelta, ticks());
             float fade = (1.0f - t) * (1.0f - t);
             float grow = Math.min(1.0f, t / 0.2f);
             float r = size;
@@ -155,7 +155,7 @@ public final class FxShapes {
         }
     }
 
-    private static final class Nova implements FxShape {
+    private static final class Nova implements FxShape.Timed {
         private final FxStyle style;
         private final Vec3d at;
         private final float size;
@@ -169,13 +169,13 @@ public final class FxShapes {
         }
 
         @Override
-        public int life() {
+        public int ticks() {
             return 14;
         }
 
         @Override
-        public void tick(FxWorld world, int age, float density) {
-            float t = age / (float) life();
+        public void tick(FxWorld world, FxLife life, float density) {
+            float t = life.age() / (float) ticks();
             if (t > 0.6f) {
                 return;
             }
@@ -193,8 +193,8 @@ public final class FxShapes {
         }
 
         @Override
-        public void draw(FxPainter painter, @Nullable ClientWorld world, int age, float tickDelta) {
-            float t = FxShape.progress(age, tickDelta, life());
+        public void draw(FxPainter painter, @Nullable ClientWorld world, FxLife life, float tickDelta) {
+            float t = life.progress(tickDelta, ticks());
             float fade = (1.0f - t) * (1.0f - t);
             float r = size;
             Vec3d ground = at.add(0.0, 0.08, 0.0);
@@ -208,7 +208,7 @@ public final class FxShapes {
         }
     }
 
-    private static final class Explosion implements FxShape {
+    private static final class Explosion implements FxShape.Timed {
         private final FxStyle style;
         private final Vec3d at;
         private final float size;
@@ -224,7 +224,7 @@ public final class FxShapes {
         }
 
         @Override
-        public int life() {
+        public int ticks() {
             return 11;
         }
 
@@ -238,8 +238,8 @@ public final class FxShapes {
         }
 
         @Override
-        public void draw(FxPainter painter, @Nullable ClientWorld world, int age, float tickDelta) {
-            float t = FxShape.progress(age, tickDelta, life());
+        public void draw(FxPainter painter, @Nullable ClientWorld world, FxLife life, float tickDelta) {
+            float t = life.progress(tickDelta, ticks());
             float fade = (1.0f - t) * (1.0f - t);
             float grow = Math.min(1.0f, t / 0.2f);
             float r = size;
@@ -259,7 +259,7 @@ public final class FxShapes {
         }
     }
 
-    private static final class Blast implements FxShape {
+    private static final class Blast implements FxShape.Timed {
         private final FxStyle style;
         private final Vec3d at;
         private final float size;
@@ -273,7 +273,7 @@ public final class FxShapes {
         }
 
         @Override
-        public int life() {
+        public int ticks() {
             return 16;
         }
 
@@ -282,8 +282,8 @@ public final class FxShapes {
         }
 
         @Override
-        public void tick(FxWorld world, int age, float density) {
-            float t = age / (float) life();
+        public void tick(FxWorld world, FxLife life, float density) {
+            float t = life.age() / (float) ticks();
             if (t > 0.7f) {
                 return;
             }
@@ -300,8 +300,8 @@ public final class FxShapes {
         }
 
         @Override
-        public void draw(FxPainter painter, @Nullable ClientWorld world, int age, float tickDelta) {
-            float t = FxShape.progress(age, tickDelta, life());
+        public void draw(FxPainter painter, @Nullable ClientWorld world, FxLife life, float tickDelta) {
+            float t = life.progress(tickDelta, ticks());
             float fade = (1.0f - t) * (1.0f - t);
             float grow = Math.min(1.0f, t / 0.2f);
             float r = size;
@@ -320,7 +320,7 @@ public final class FxShapes {
         }
     }
 
-    private static final class Beam implements FxShape {
+    private static final class Beam implements FxShape.Timed {
         private final FxStyle style;
         private final Vec3d from;
         private final Vec3d to;
@@ -334,7 +334,7 @@ public final class FxShapes {
         }
 
         @Override
-        public int life() {
+        public int ticks() {
             return 8;
         }
 
@@ -344,8 +344,8 @@ public final class FxShapes {
         }
 
         @Override
-        public void draw(FxPainter painter, @Nullable ClientWorld world, int age, float tickDelta) {
-            float t = FxShape.progress(age, tickDelta, life());
+        public void draw(FxPainter painter, @Nullable ClientWorld world, FxLife life, float tickDelta) {
+            float t = life.progress(tickDelta, ticks());
             float fade = (1.0f - t) * (1.0f - t);
             float w = Math.max(0.05f, width) * (1.0f - 0.3f * t);
             painter.beam(from, to, w, style.glow(), 0.85f * fade);
@@ -359,7 +359,7 @@ public final class FxShapes {
      * A crack of light: a line pushed about at random between its ends, redrawn on another
      * random path every tick so it flickers, with forks off it for a stronger one.
      */
-    private static final class Arc implements FxShape {
+    private static final class Arc implements FxShape.Timed {
         private final FxStyle style;
         private final Vec3d from;
         private final Vec3d to;
@@ -375,7 +375,7 @@ public final class FxShapes {
         }
 
         @Override
-        public int life() {
+        public int ticks() {
             return 5;
         }
 
@@ -385,10 +385,10 @@ public final class FxShapes {
         }
 
         @Override
-        public void draw(FxPainter painter, @Nullable ClientWorld world, int age, float tickDelta) {
-            float t = FxShape.progress(age, tickDelta, life());
+        public void draw(FxPainter painter, @Nullable ClientWorld world, FxLife life, float tickDelta) {
+            float t = life.progress(tickDelta, ticks());
             float fade = (1.0f - t) * (1.0f - t);
-            Random jag = new Random(seed + age * 31L);
+            Random jag = new Random(seed + life.age() * 31L);
             List<Vec3d> path = jagged(from, to, jag, 0.18f + tier * 0.05f);
             strokes(painter, path, style, fade, 1.0f);
             for (int fork = 0; fork < tier; fork++) {

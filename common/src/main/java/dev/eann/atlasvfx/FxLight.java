@@ -20,4 +20,14 @@ public final class FxLight {
     public static int at(@Nullable ClientWorld world, Vec3d at) {
         return world == null ? FULL_BRIGHT : WorldRenderer.getLightmapCoordinates(world, BlockPos.ofFloored(at));
     }
+
+    /**
+     * The same light with its block light raised to at least {@code minBlock}, 0 to 15: something
+     * lit by the world that should dim in the dark without vanishing.
+     */
+    public static int withMinBlock(int packed, int minBlock) {
+        int floor = Math.max(0, Math.min(15, minBlock));
+        int block = Math.max(LightmapTextureManager.getBlockLightCoordinates(packed), floor);
+        return LightmapTextureManager.pack(block, LightmapTextureManager.getSkyLightCoordinates(packed));
+    }
 }

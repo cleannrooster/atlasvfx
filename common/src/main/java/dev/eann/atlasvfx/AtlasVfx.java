@@ -10,7 +10,8 @@ import dev.architectury.event.events.client.ClientTickEvent;
  * <p>Each loader's client entrypoint calls {@link #initClient()} once, after adapting its own
  * render event into {@link WorldRenderHook}. From then on the world's effects tick with the
  * client, are forgotten when a world is joined or left, and are drawn after the world's
- * translucent geometry. A mod using this only plays shapes and spawns motes.</p>
+ * translucent geometry. A mod using this only plays shapes and spawns motes. It also registers
+ * the {@code /atlasvfx} client commands, for looking at effects without such a mod.</p>
  */
 public final class AtlasVfx {
 
@@ -33,5 +34,6 @@ public final class AtlasVfx {
         ClientPlayerEvent.CLIENT_PLAYER_JOIN.register(player -> world.clear());
         ClientPlayerEvent.CLIENT_PLAYER_QUIT.register(player -> world.clear());
         WorldRenderHook.AFTER_TRANSLUCENT.register(world::render);
+        AtlasVfxCommands.register();
     }
 }

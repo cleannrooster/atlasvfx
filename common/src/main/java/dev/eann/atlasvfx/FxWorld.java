@@ -24,15 +24,42 @@ public final class FxWorld {
     private static final int MAX_MOTES = 2400;
     private static final FxWorld INSTANCE = new FxWorld();
 
-    /** One shape alive, with whose share of the effect it is made at. */
-    private static final class Live {
+    /** One shape alive, with whose share of the effect it is made at; also its handle. */
+    private static final class Live implements FxHandle {
         final FxShape shape;
         final FxDensity host;
-        int age;
+        final FxLife life = new FxLife();
+        boolean ended;
 
         Live(FxShape shape, FxDensity host) {
             this.shape = shape;
             this.host = host;
+        }
+
+        @Override
+        public void release() {
+            if (!ended) {
+                life.release();
+            }
+        }
+
+        @Override
+        public void cancel() {
+            if (!ended) {
+                life.cancel();
+            }
+        }
+
+        @Override
+        public void flash() {
+            if (!ended) {
+                life.flash();
+            }
+        }
+
+        @Override
+        public boolean alive() {
+            return !ended && !life.cancelled();
         }
     }
 
@@ -53,18 +80,25 @@ public final class FxWorld {
      * Starts a shape, with what it throws off the moment it appears.
      *
      * @param host whose effect it is, for how much of it to make
+     * @return a handle to let go of it, put it away or flash it
      */
-    public void play(FxShape shape, FxDensity host) {
-        shapes.add(new Live(shape, host));
+    public FxHandle play(FxShape shape, FxDensity host) {
+        Live live = new Live(shape, host);
+        shapes.add(live);
         shape.open(this, host.effective());
+        return live;
     }
 
     /**
      * Starts a shape on its own, without what it would throw off as it appears: for when
      * something else is already supplying the debris.
+     *
+     * @return a handle to let go of it, put it away or flash it
      */
-    public void add(FxShape shape, FxDensity host) {
-        shapes.add(new Live(shape, host));
+    public FxHandle add(FxShape shape, FxDensity host) {
+        Live live = new Live(shape, host);
+        shapes.add(live);
+        return live;
     }
 
     // ---- motes ---------------------------------------------------------------------------------------------
@@ -119,18 +153,33 @@ public final class FxWorld {
             clear();
             return;
         }
-        Iterator<Live> iterator = shapes.iterator();
-        while (iterator.hasNext()) {
-            Live live = iterator.next();
-            live.shape.tick(this, live.age, live.host.effective());
-            if (++live.age >= live.shape.life()) {
-                iterator.remove();
-            }
-        }
+        advanceShapes();
         motes.tick();
     }
 
+    /** Ticks every shape once: the cancelled go at once, the rest go when they say they are done. */
+    void advanceShapes() {
+        Iterator<Live> iterator = shapes.iterator();
+        while (iterator.hasNext()) {
+            Live live = iterator.next();
+            if (live.life.cancelled()) {
+                live.ended = true;
+                iterator.remove();
+                continue;
+            }
+            live.shape.tick(this, live.life, live.host.effective());
+            live.life.advance();
+            if (live.shape.done(live.life)) {
+                live.ended = true;
+                iterator.remove();
+            }
+        }
+    }
+
     public void clear() {
+        for (Live live : shapes) {
+            live.ended = true;
+        }
         shapes.clear();
         motes.clear();
     }
@@ -149,7 +198,9 @@ public final class FxWorld {
         for (FxPass pass : FxPass.ordered()) {
             painter.begin(pass);
             for (Live live : shapes) {
-                live.shape.draw(painter, world, live.age, tickDelta);
+                if (!live.life.cancelled()) {
+                    live.shape.draw(painter, world, live.life, tickDelta);
+                }
             }
             motes.draw(painter, world, false, tickDelta, -1);
         }

@@ -337,6 +337,50 @@ public final class FxPainter {
     }
 
     /**
+     * Part of a ring of light lying in a plane: the outer edge of a cone, say. Angles are in the
+     * plane's own terms - 0 along its x, a quarter turn along its y.
+     *
+     * @param start where it starts, in radians
+     * @param sweep how far round it runs, in radians; negative runs the other way
+     */
+    public void arc(Vec3d at, Quaternionf plane, float radius, float width, float start, float sweep, int rgb,
+                    float alpha) {
+        if (alpha <= 0.004f || radius <= 0.0f || width <= 0.0f || Math.abs(sweep) < 1.0e-4f) {
+            return;
+        }
+        VertexConsumer out = buffer(FxPass.GLOW);
+        if (out == null) {
+            return;
+        }
+        Vector3f centre = local(at);
+        float r = (rgb >> 16 & 0xFF) / 255.0f;
+        float g = (rgb >> 8 & 0xFF) / 255.0f;
+        float b = (rgb & 0xFF) / 255.0f;
+        float inner = Math.max(0.0f, radius - width * 0.5f);
+        float outer = radius + width * 0.5f;
+        float tau = (float) (Math.PI * 2.0);
+        int sides = Math.max(2, (int) Math.ceil(ringSides * Math.abs(sweep) / tau));
+        for (int i = 0; i < sides; i++) {
+            float t0 = (start + sweep * i / sides) / tau;
+            float t1 = (start + sweep * (i + 1) / sides) / tau;
+            Vector3f in0 = rim(centre, plane, inner, t0);
+            Vector3f in1 = rim(centre, plane, inner, t1);
+            Vector3f mid0 = rim(centre, plane, radius, t0);
+            Vector3f mid1 = rim(centre, plane, radius, t1);
+            Vector3f out0 = rim(centre, plane, outer, t0);
+            Vector3f out1 = rim(centre, plane, outer, t1);
+            put(out, in0, r, g, b, 0.0f);
+            put(out, mid0, r, g, b, alpha);
+            put(out, mid1, r, g, b, alpha);
+            put(out, in1, r, g, b, 0.0f);
+            put(out, mid0, r, g, b, alpha);
+            put(out, out0, r, g, b, 0.0f);
+            put(out, out1, r, g, b, 0.0f);
+            put(out, mid1, r, g, b, alpha);
+        }
+    }
+
+    /**
      * One blade of a flash: hot at its root, its colour along its sides, nothing at its tip.
      *
      * @param along  the way the blade points, a unit vector, already in this painter's space
@@ -397,7 +441,36 @@ public final class FxPainter {
                 sight = facing.transform(new Vector3f(0.0f, 0.0f, 1.0f));
             }
         }
-        Vector3f side = new Vector3f(along).cross(sight);
+        strip(out, a, b, along, sight, width, rgb, alpha);
+    }
+
+    /**
+     * A straight band of light lying in a plane - a line drawn on the ground, say - rather than
+     * turned to the viewer: brightest down its middle, fading to nothing at either edge.
+     *
+     * @param normal the plane's normal; the band is wide across it, square to its own length
+     */
+    public void band(Vec3d from, Vec3d to, Vector3f normal, float width, int rgb, float alpha) {
+        if (alpha <= 0.004f || width <= 0.0f) {
+            return;
+        }
+        Vector3f a = local(from);
+        Vector3f b = local(to);
+        Vector3f along = new Vector3f(b).sub(a);
+        if (along.lengthSquared() < 1.0e-8f) {
+            return;
+        }
+        VertexConsumer out = buffer(FxPass.GLOW);
+        if (out == null) {
+            return;
+        }
+        strip(out, a, b, along, new Vector3f(normal), width, rgb, alpha);
+    }
+
+    /** A soft strip from {@code a} to {@code b}, wide across both its length and {@code across}. */
+    private void strip(VertexConsumer out, Vector3f a, Vector3f b, Vector3f along, Vector3f across, float width,
+                       int rgb, float alpha) {
+        Vector3f side = new Vector3f(along).cross(across);
         if (side.lengthSquared() < 1.0e-8f) {
             side = perpendicularTo(along);
         }
@@ -418,6 +491,93 @@ public final class FxPainter {
     private static Vector3f perpendicularTo(Vector3f v) {
         Vector3f helper = Math.abs(v.y) < 0.9f ? new Vector3f(0.0f, 1.0f, 0.0f) : new Vector3f(1.0f, 0.0f, 0.0f);
         return helper.cross(v);
+    }
+
+    // ---- surfaces ------------------------------------------------------------------------------------------
+
+    /**
+     * A surface given point by point: a trail, a slash, a filled area on the ground. Each point
+     * carries its own colour and opacity, and the picture, if there is one, is stretched over the
+     * grid - {@code u} along its rows, {@code v} across its columns - within {@code window}.
+     *
+     * <p>Without a picture, or blended as {@link FxBlend#GLOW glow}, it is untextured light. A lit
+     * surface is shaded on whichever face is turned to the viewer.</p>
+     *
+     * @param pick   which frame of the picture to show
+     * @param light  the light a lit or emissive surface is drawn in
+     * @param normal the surface's normal, a unit vector
+     * @param offset how far the whole grid is moved along {@code normal}: one face of a slab
+     */
+    public void surface(SurfaceGrid grid, FxBlend blend, @Nullable FxSprite sprite, UvWindow window, int pick,
+                        int light, Vector3f normal, float offset) {
+        boolean textured = sprite != null && blend != FxBlend.GLOW;
+        FxPass of = textured ? FxPass.of(blend, sprite.atlas()) : FxPass.GLOW;
+        if (!drawing(of)) {
+            return;
+        }
+        Sprite picture = textured ? sprite.frame(0.0f, pick, false) : null;
+        if (textured && picture == null) {
+            return;
+        }
+        VertexConsumer out = buffer(of);
+        if (out == null) {
+            return;
+        }
+        boolean lit = textured && blend == FxBlend.LIT;
+        float ox = normal.x * offset - (float) origin.x;
+        float oy = normal.y * offset - (float) origin.y;
+        float oz = normal.z * offset - (float) origin.z;
+        int rows = grid.rows();
+        int columns = grid.columns();
+        Vector3f facingNormal = new Vector3f();
+        for (int r = 0; r < rows; r++) {
+            float u0 = textured ? picture.getFrameU(window.u(r / (float) rows)) : 0.0f;
+            float u1 = textured ? picture.getFrameU(window.u((r + 1) / (float) rows)) : 0.0f;
+            for (int c = 0; c < columns; c++) {
+                if (grid.alpha(r, c) + grid.alpha(r, c + 1) + grid.alpha(r + 1, c + 1) + grid.alpha(r + 1, c)
+                        <= 0.004f) {
+                    continue;
+                }
+                float v0 = textured ? picture.getFrameV(window.v(c / (float) columns)) : 0.0f;
+                float v1 = textured ? picture.getFrameV(window.v((c + 1) / (float) columns)) : 0.0f;
+                if (lit) {
+                    // Shade the face the viewer sees: a slash is seen from both sides.
+                    float toEyeX = eye.x - ((float) grid.x(r, c) + ox);
+                    float toEyeY = eye.y - ((float) grid.y(r, c) + oy);
+                    float toEyeZ = eye.z - ((float) grid.z(r, c) + oz);
+                    float side = toEyeX * normal.x + toEyeY * normal.y + toEyeZ * normal.z;
+                    facingNormal.set(normal).mul(side < 0.0f ? -1.0f : 1.0f);
+                    // Into the space the shader lights in, as the game's own entity models do.
+                    matrix.transformDirection(facingNormal).normalize();
+                }
+                surfaceVertex(out, grid, r, c, ox, oy, oz, u0, v0, light, textured, lit, facingNormal);
+                surfaceVertex(out, grid, r, c + 1, ox, oy, oz, u0, v1, light, textured, lit, facingNormal);
+                surfaceVertex(out, grid, r + 1, c + 1, ox, oy, oz, u1, v1, light, textured, lit, facingNormal);
+                surfaceVertex(out, grid, r + 1, c, ox, oy, oz, u1, v0, light, textured, lit, facingNormal);
+            }
+        }
+    }
+
+    private void surfaceVertex(VertexConsumer out, SurfaceGrid grid, int r, int c, float ox, float oy, float oz,
+                               float u, float v, int light, boolean textured, boolean lit, Vector3f normal) {
+        float x = (float) grid.x(r, c) + ox;
+        float y = (float) grid.y(r, c) + oy;
+        float z = (float) grid.z(r, c) + oz;
+        int rgb = grid.rgb(r, c);
+        float red = (rgb >> 16 & 0xFF) / 255.0f;
+        float green = (rgb >> 8 & 0xFF) / 255.0f;
+        float blue = (rgb & 0xFF) / 255.0f;
+        float alpha = Math.max(0.0f, Math.min(1.0f, grid.alpha(r, c)));
+        if (!textured) {
+            out.vertex(matrix, x, y, z).color(red, green, blue, alpha);
+        } else if (space == FxSpace.SCREEN) {
+            out.vertex(matrix, x, y, z).texture(u, v).color(red, green, blue, alpha);
+        } else if (lit) {
+            out.vertex(matrix, x, y, z).color(red, green, blue, alpha).texture(u, v)
+                    .overlay(OverlayTexture.DEFAULT_UV).light(light).normal(normal.x, normal.y, normal.z);
+        } else {
+            out.vertex(matrix, x, y, z).texture(u, v).color(red, green, blue, alpha).light(light);
+        }
     }
 
     // ---- the End ------------------------------------------------------------------------------------------
