@@ -1,6 +1,7 @@
 package dev.eann.atlasvfx.neoforge;
 
 import dev.eann.atlasvfx.AtlasVfx;
+import dev.architectury.event.Event;
 import dev.eann.atlasvfx.WorldRenderHook;
 import net.minecraft.client.MinecraftClient;
 import net.neoforged.api.distmarker.Dist;
@@ -31,10 +32,14 @@ public final class AtlasVfxNeoForge {
     private static final class Client {
         static void init() {
             NeoForge.EVENT_BUS.addListener((RenderLevelStageEvent event) -> {
-                if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
+                RenderLevelStageEvent.Stage stage = event.getStage();
+                Event<WorldRenderHook> hook = stage == RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS
+                        ? WorldRenderHook.AFTER_TRANSLUCENT
+                        : stage == RenderLevelStageEvent.Stage.AFTER_WEATHER ? WorldRenderHook.AFTER_WEATHER : null;
+                if (hook == null) {
                     return;
                 }
-                WorldRenderHook.AFTER_TRANSLUCENT.invoker().render(new WorldRenderHook.Context(
+                hook.invoker().render(new WorldRenderHook.Context(
                         event.getPoseStack(),
                         MinecraftClient.getInstance().getBufferBuilders().getEntityVertexConsumers(),
                         event.getCamera(),

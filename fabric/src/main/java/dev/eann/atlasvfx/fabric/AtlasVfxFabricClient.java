@@ -3,6 +3,7 @@ package dev.eann.atlasvfx.fabric;
 import dev.eann.atlasvfx.AtlasVfx;
 import dev.eann.atlasvfx.WorldRenderHook;
 import net.fabricmc.api.ClientModInitializer;
+import net.minecraft.client.MinecraftClient;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 
 /**
@@ -16,6 +17,13 @@ public final class AtlasVfxFabricClient implements ClientModInitializer {
                 WorldRenderHook.AFTER_TRANSLUCENT.invoker().render(new WorldRenderHook.Context(
                         context.matrixStack(),
                         context.consumers(),
+                        context.camera(),
+                        context.tickCounter().getTickDelta(false))));
+        WorldRenderEvents.LAST.register(context ->
+                WorldRenderHook.AFTER_WEATHER.invoker().render(new WorldRenderHook.Context(
+                        context.matrixStack(),
+                        context.consumers() != null ? context.consumers()
+                                : MinecraftClient.getInstance().getBufferBuilders().getEntityVertexConsumers(),
                         context.camera(),
                         context.tickCounter().getTickDelta(false))));
 

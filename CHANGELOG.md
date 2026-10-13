@@ -1,3 +1,9 @@
+# 0.3.1
+
+- `WorldRenderHook.AFTER_WEATHER`: a second drawing hook, after the world has drawn its clouds and
+  weather (Fabric `LAST`, NeoForge `AFTER_WEATHER`). For light in the air that clouds and weather
+  must not paint over - a mod's glowing projectiles, say. `AFTER_TRANSLUCENT` is unchanged.
+
 # 0.3.0
 
 Effects can now be aimed: thrown one way, within a cone, rather than in every direction.

@@ -19,6 +19,18 @@ public interface WorldRenderHook {
 
     Event<WorldRenderHook> AFTER_TRANSLUCENT = EventFactory.createLoop();
 
+    /**
+     * "The world has finished drawing, clouds and weather included." For light that must not be
+     * painted over by anything the world draws after its translucent terrain - a glowing body in
+     * front of a cloud, say. Fabric's {@code LAST}, NeoForge's {@code AFTER_WEATHER}.
+     *
+     * <p>What is drawn here is tested against the world's depth but drawn over its clouds and
+     * weather, so it suits things in the air between the viewer and the sky; under Fabulous
+     * graphics, whether the depth it tests against still includes translucent terrain is the
+     * loader's business.</p>
+     */
+    Event<WorldRenderHook> AFTER_WEATHER = EventFactory.createLoop();
+
     void render(Context context);
 
     /**

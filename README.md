@@ -12,11 +12,11 @@ Depend on the artifact matching each of your modules, the way you depend on Arch
 
 ```groovy
 // common
-modApi "dev.eann:atlasvfx-common:0.3.0"
+modApi "dev.eann:atlasvfx-common:0.3.1"
 // fabric
-modApi "dev.eann:atlasvfx-fabric:0.3.0"
+modApi "dev.eann:atlasvfx-fabric:0.3.1"
 // neoforge
-modApi "dev.eann:atlasvfx-neoforge:0.3.0"
+modApi "dev.eann:atlasvfx-neoforge:0.3.1"
 ```
 
 The library starts itself on the client: `FxWorld` is ticked, cleared between worlds and drawn
