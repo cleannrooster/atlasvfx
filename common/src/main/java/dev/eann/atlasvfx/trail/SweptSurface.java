@@ -1,5 +1,6 @@
 package dev.eann.atlasvfx.trail;
 
+import dev.eann.atlasvfx.FxLife;
 import org.joml.Vector3f;
 
 /**
@@ -11,6 +12,18 @@ import org.joml.Vector3f;
  * damage is described by the same function, the trail is drawn exactly over what can be hit.</p>
  */
 public interface SweptSurface {
+
+    /**
+     * Once a tick, before its trail's age moves on: for a surface that records where something
+     * goes, the moment to take a sample.
+     */
+    default void tick(FxLife life) {
+    }
+
+    /** Whether it has run out of anything to draw: a recorded trail whose tail has caught its head. */
+    default boolean finished(FxLife life) {
+        return false;
+    }
 
     /** Works out where it is this frame; false when there is nothing to draw. */
     boolean prepare(float tickDelta);

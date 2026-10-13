@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "atlasvfx_example",
+  "version": "${version}",
+  "name": "AtlasVFX Example",
+  "description": "A dev-only mod that uses AtlasVFX like a content mod would. Never published.",
+  "authors": ["eann"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["dev.eann.atlasvfx.example.fabric.ExampleFabric"],
+    "client": ["dev.eann.atlasvfx.example.fabric.ExampleFabricClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "atlasvfx": "*",
+    "architectury": ">=13.0.0",
+    "minecraft": "~1.21.1"
+  }
+}

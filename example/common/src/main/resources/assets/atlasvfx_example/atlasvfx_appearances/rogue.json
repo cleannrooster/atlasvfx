@@ -1,0 +1,22 @@
+{
+  "name": "Forsaken Rogue",
+  "description": "Daggers, a hood, and the dark.",
+  "geo": "atlasvfx_example:geo/rogue.geo.json",
+  "texture": "atlasvfx_example:textures/entity/rogue.png",
+  "animations": "atlasvfx_example:animations/adventurers.animations.json",
+  "posing": "follow",
+  "clips": {
+    "prefix": "animation.v2.trickster.",
+    "stance": "stance",
+    "advance": "advance",
+    "backstep": "backstep",
+    "lateral_left": "lateral_left",
+    "lateral_right": "lateral_right",
+    "swing": [
+      "cross_slash_r",
+      "cross_slash_l"
+    ],
+    "use": "throw_mobile",
+    "swing_speed": 1.4
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.eann.atlasvfx.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "EntityRenderDispatcherMixin",
+    "LivingEntityRendererMixin",
+    "MultiPhaseAccessor",
+    "MultiPhaseParametersAccessor",
+    "PlayerEntityRendererMixin",
+    "RenderPhaseAccessor",
+    "TextureBaseInvoker",
+    "ToggleableAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

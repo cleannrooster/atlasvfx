@@ -1,9 +1,6 @@
 package dev.eann.atlasvfx;
 
-import com.mojang.blaze3d.platform.GlConst;
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexFormat;
@@ -17,37 +14,62 @@ import org.jetbrains.annotations.Nullable;
  * weighted by its own transparency, and without hiding anything drawn after it. The game's
  * additive layers either ignore transparency - so a soft picture comes out as a square - or
  * write depth, so a glow hides the sparks behind it. The world's light layers do neither: they
- * are tested against depth, so a wall or a body in front still hides them, but never write it.
- * The test has to be asked for, as every one of the game's own layers asks for it: a layer that
- * leaves it alone draws with whatever the last one left behind, which is often nothing, and
- * then shows through everything.</p>
+ * are tested against depth, so a wall or a body in front still hides them, but never write it.</p>
  *
- * <p>The screen's layers leave depth as they find it, as the screen's own drawing does, and set
- * only how colour is blended. They do turn off culling, so a picture shows whichever way round
- * its corners went.</p>
+ * <p>The screen's layers draw over whatever the screen has drawn so far and never write depth,
+ * so nothing drawn after them is hidden. They turn off culling, so a picture shows whichever way
+ * round its corners went.</p>
  *
- * <p>All are plain {@link RenderLayer}s built through its public constructor, with their state
- * set and put back by hand, rather than through the factory the game builds its own with: that
- * one is closed, and opening it with an access widener does not reach the NeoForge jar. Each is
- * built once, the first time it is asked for.</p>
+ * <p>Every layer is built the way the game builds its own - {@code RenderLayer.of} with its
+ * standard phases - rather than as a layer that sets the state by hand. That matters to mods that
+ * read layers rather than run them: a shader pack under Iris picks its program and its draw order
+ * from these phases, and a layer whose state it cannot see is treated as opaque and drawn first,
+ * underneath what it should sit on. {@code of} is closed in the game's own code; NeoForge's access
+ * transformer opens it, and on Fabric Fabric API's transitive access wideners do, with this mod's
+ * own widener declaring it too. Each layer is built once, the first time it is asked for.</p>
+ *
+ * <p>Pictures are bound without changing the atlas's filtering, as the game's particles leave it:
+ * a texture phase that set it would change it for everything else drawn from the same atlas.</p>
  */
-public final class FxLayers {
+public final class FxLayers extends RenderLayer {
 
     private static final int ATLASES = AtlasRef.values().size();
+    private static final int BUFFER_SIZE = 4096;
 
-    private static final RenderLayer WORLD_GLOW = new WorldLayer("atlasvfx_world_glow", VertexFormats.POSITION_COLOR,
-            () -> RenderSystem.setShader(GameRenderer::getPositionColorProgram),
-            () -> {
-            });
-    private static final RenderLayer SCREEN_GLOW = new ScreenLayer("atlasvfx_screen_glow",
-            VertexFormats.POSITION_COLOR, true,
-            () -> RenderSystem.setShader(GameRenderer::getPositionColorProgram));
+    private static final ShaderProgram COLOUR = new ShaderProgram(GameRenderer::getPositionColorProgram);
+    private static final ShaderProgram PARTICLE = new ShaderProgram(GameRenderer::getParticleProgram);
+    private static final ShaderProgram TEXTURE_COLOUR = new ShaderProgram(GameRenderer::getPositionTexColorProgram);
+
+    private static final RenderLayer WORLD_GLOW = of("atlasvfx_world_glow", VertexFormats.POSITION_COLOR,
+            VertexFormat.DrawMode.QUADS, BUFFER_SIZE, false, false,
+            MultiPhaseParameters.builder()
+                    .program(COLOUR)
+                    // Added, but only as much as the pixel is there: a soft edge stays soft.
+                    .transparency(LIGHTNING_TRANSPARENCY)
+                    .depthTest(LEQUAL_DEPTH_TEST)
+                    .writeMaskState(COLOR_MASK)
+                    .cull(DISABLE_CULLING)
+                    .build(false));
+
+    private static final RenderLayer SCREEN_GLOW = of("atlasvfx_screen_glow", VertexFormats.POSITION_COLOR,
+            VertexFormat.DrawMode.QUADS, BUFFER_SIZE, false, false,
+            MultiPhaseParameters.builder()
+                    .program(COLOUR)
+                    .transparency(LIGHTNING_TRANSPARENCY)
+                    .depthTest(ALWAYS_DEPTH_TEST)
+                    .writeMaskState(COLOR_MASK)
+                    .cull(DISABLE_CULLING)
+                    .build(false));
 
     private static final RenderLayer[] WORLD_EMISSIVE = new RenderLayer[ATLASES];
     private static final RenderLayer[] SCREEN_EMISSIVE = new RenderLayer[ATLASES];
     private static final RenderLayer[] SCREEN_LIT = new RenderLayer[ATLASES];
 
     private FxLayers() {
+        // Never made: extending RenderLayer is only for its phases.
+        super("atlasvfx_layers", VertexFormats.POSITION, VertexFormat.DrawMode.QUADS, 0, false, false, () -> {
+        }, () -> {
+        });
     }
 
     /**
@@ -68,19 +90,22 @@ public final class FxLayers {
     }
 
     /** A picture from this atlas as light, out in the world. */
-    public static RenderLayer emissive(AtlasRef atlas) {
+    public static synchronized RenderLayer emissive(AtlasRef atlas) {
         RenderLayer layer = WORLD_EMISSIVE[atlas.index()];
         if (layer == null) {
-            layer = new WorldLayer("atlasvfx_world_emissive_" + atlas.name(),
-                    VertexFormats.POSITION_TEXTURE_COLOR_LIGHT,
-                    () -> {
-                        // The particle program: the same one the game draws its own sparks with,
-                        // so fog and the lightmap behave the way they do on those.
-                        RenderSystem.setShader(GameRenderer::getParticleProgram);
-                        RenderSystem.setShaderTexture(0, atlas.texture());
-                        MinecraftClient.getInstance().gameRenderer.getLightmapTextureManager().enable();
-                    },
-                    () -> MinecraftClient.getInstance().gameRenderer.getLightmapTextureManager().disable());
+            layer = of("atlasvfx_world_emissive_" + atlas.name(), VertexFormats.POSITION_TEXTURE_COLOR_LIGHT,
+                    VertexFormat.DrawMode.QUADS, BUFFER_SIZE, false, false,
+                    MultiPhaseParameters.builder()
+                            // The particle program: the one the game draws its own sparks with, so
+                            // fog and the lightmap behave the way they do on those.
+                            .program(PARTICLE)
+                            .texture(atlasTexture(atlas))
+                            .transparency(LIGHTNING_TRANSPARENCY)
+                            .depthTest(LEQUAL_DEPTH_TEST)
+                            .writeMaskState(COLOR_MASK)
+                            .cull(DISABLE_CULLING)
+                            .lightmap(ENABLE_LIGHTMAP)
+                            .build(false));
             WORLD_EMISSIVE[atlas.index()] = layer;
         }
         return layer;
@@ -91,79 +116,41 @@ public final class FxLayers {
         return WORLD_GLOW;
     }
 
-    private static RenderLayer screenEmissive(AtlasRef atlas) {
+    private static synchronized RenderLayer screenEmissive(AtlasRef atlas) {
         RenderLayer layer = SCREEN_EMISSIVE[atlas.index()];
         if (layer == null) {
-            layer = new ScreenLayer("atlasvfx_screen_emissive_" + atlas.name(), VertexFormats.POSITION_TEXTURE_COLOR,
-                    true, () -> {
-                        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-                        RenderSystem.setShaderTexture(0, atlas.texture());
-                    });
+            layer = screenPicture("atlasvfx_screen_emissive_", atlas, LIGHTNING_TRANSPARENCY);
             SCREEN_EMISSIVE[atlas.index()] = layer;
         }
         return layer;
     }
 
-    private static RenderLayer screenLit(AtlasRef atlas) {
+    private static synchronized RenderLayer screenLit(AtlasRef atlas) {
         RenderLayer layer = SCREEN_LIT[atlas.index()];
         if (layer == null) {
-            layer = new ScreenLayer("atlasvfx_screen_lit_" + atlas.name(), VertexFormats.POSITION_TEXTURE_COLOR,
-                    false, () -> {
-                        RenderSystem.setShader(GameRenderer::getPositionTexColorProgram);
-                        RenderSystem.setShaderTexture(0, atlas.texture());
-                    });
+            // Laid over as a solid picture rather than added as light.
+            layer = screenPicture("atlasvfx_screen_lit_", atlas, TRANSLUCENT_TRANSPARENCY);
             SCREEN_LIT[atlas.index()] = layer;
         }
         return layer;
     }
 
-    private static final class WorldLayer extends RenderLayer {
-        WorldLayer(String name, VertexFormat format, Runnable setup, Runnable clear) {
-            super(name, format, VertexFormat.DrawMode.QUADS, 4096, false, false,
-                    () -> {
-                        setup.run();
-                        RenderSystem.enableBlend();
-                        // Added, but only as much as the pixel is there: a soft edge stays soft.
-                        RenderSystem.blendFunc(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE);
-                        RenderSystem.enableDepthTest();
-                        RenderSystem.depthFunc(GlConst.GL_LEQUAL);
-                        RenderSystem.depthMask(false);
-                        RenderSystem.disableCull();
-                    },
-                    () -> {
-                        RenderSystem.enableCull();
-                        RenderSystem.depthMask(true);
-                        // Put back the way the game's own depth phase leaves it.
-                        RenderSystem.disableDepthTest();
-                        RenderSystem.depthFunc(GlConst.GL_LEQUAL);
-                        RenderSystem.defaultBlendFunc();
-                        RenderSystem.disableBlend();
-                        clear.run();
-                    });
-        }
+    private static RenderLayer screenPicture(String name, AtlasRef atlas, Transparency transparency) {
+        return of(name + atlas.name(), VertexFormats.POSITION_TEXTURE_COLOR, VertexFormat.DrawMode.QUADS,
+                BUFFER_SIZE, false, false,
+                MultiPhaseParameters.builder()
+                        .program(TEXTURE_COLOUR)
+                        .texture(atlasTexture(atlas))
+                        .transparency(transparency)
+                        .depthTest(ALWAYS_DEPTH_TEST)
+                        .writeMaskState(COLOR_MASK)
+                        .cull(DISABLE_CULLING)
+                        .build(false));
     }
 
-    private static final class ScreenLayer extends RenderLayer {
-        /**
-         * @param additive whether it is added on top, as light, or laid over, as a solid picture
-         */
-        ScreenLayer(String name, VertexFormat format, boolean additive, Runnable setup) {
-            super(name, format, VertexFormat.DrawMode.QUADS, 4096, false, false,
-                    () -> {
-                        setup.run();
-                        RenderSystem.enableBlend();
-                        if (additive) {
-                            RenderSystem.blendFunc(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE);
-                        } else {
-                            RenderSystem.defaultBlendFunc();
-                        }
-                        RenderSystem.disableCull();
-                    },
-                    () -> {
-                        RenderSystem.enableCull();
-                        RenderSystem.defaultBlendFunc();
-                        RenderSystem.disableBlend();
-                    });
-        }
+    /** Binds an atlas without touching its filtering. */
+    private static TextureBase atlasTexture(AtlasRef atlas) {
+        return new TextureBase(() -> RenderSystem.setShaderTexture(0, atlas.texture()), () -> {
+        });
     }
 }

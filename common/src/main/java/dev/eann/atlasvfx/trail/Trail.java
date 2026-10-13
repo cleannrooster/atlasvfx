@@ -1,5 +1,6 @@
 package dev.eann.atlasvfx.trail;
 
+import dev.eann.atlasvfx.FxAnchor;
 import dev.eann.atlasvfx.FxBlend;
 import dev.eann.atlasvfx.FxColor;
 import dev.eann.atlasvfx.FxCurve;
@@ -8,6 +9,7 @@ import dev.eann.atlasvfx.FxLight;
 import dev.eann.atlasvfx.FxPainter;
 import dev.eann.atlasvfx.FxPass;
 import dev.eann.atlasvfx.FxShape;
+import dev.eann.atlasvfx.FxWorld;
 import dev.eann.atlasvfx.SurfaceGrid;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.Vec3d;
@@ -80,9 +82,48 @@ public final class Trail implements FxShape {
                 TrailWindow.swing(swingTicks, 1.0f, fadeTicks), seed);
     }
 
+    /**
+     * A ribbon behind something moving - a projectile, a dash, a wisp - facing the viewer and
+     * narrowing toward its tail, kept {@code maxAge} ticks long. It lasts until its anchor lets go
+     * or it is released, then runs off.
+     *
+     * @param width across, in blocks, at the head
+     */
+    public static Trail point(FxAnchor anchor, float width, int maxAge, TrailStyle style, long seed) {
+        return new Trail(SampledSweep.point(anchor, width, FxCurve.easeOut(1.5f), maxAge), style,
+                TrailWindow.follow(), seed);
+    }
+
+    /**
+     * The path a blade sweeps, from its hilt to its tip, kept {@code maxAge} ticks long: for a
+     * swing whose path is not known in advance. Lasts until either anchor lets go or it is
+     * released, then runs off.
+     */
+    public static Trail blade(FxAnchor hilt, FxAnchor tip, int maxAge, TrailStyle style, long seed) {
+        return new Trail(SampledSweep.blade(hilt, tip, maxAge), style, TrailWindow.follow(), seed);
+    }
+
+    /**
+     * A thrust down the frame's forward direction: a barbed spearhead extending to {@code reach}
+     * over {@code extendTicks}, then fading over {@code fadeTicks}.
+     *
+     * @param halfWidth half its widest width, in blocks
+     * @param halfAngle the thrust's cone, in degrees either side of forward; 0 for none
+     */
+    public static Trail thrust(SweepFrameSource frame, float reach, float halfWidth, float halfAngle,
+                               int extendTicks, int fadeTicks, TrailStyle style, long seed) {
+        return new Trail(new LaneSweep(frame, reach, halfWidth, halfAngle, extendTicks, 7, 0.35f,
+                style.clearance(), seed), style, TrailWindow.hold(extendTicks, fadeTicks), seed);
+    }
+
+    @Override
+    public void tick(FxWorld world, FxLife life, float density) {
+        surface.tick(life);
+    }
+
     @Override
     public boolean done(FxLife life) {
-        return window.done(life);
+        return window.done(life) || surface.finished(life);
     }
 
     @Override

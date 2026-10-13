@@ -11,3 +11,13 @@ rootProject.name = 'atlasvfx'
 include 'common'
 include 'fabric'
 include 'neoforge'
+
+// The example mod: uses the library the way a content mod would, as a smoke test in a dev
+// client. Never published. Flat names on purpose: a nested `example:common` include would make an
+// empty `:example` project, which the root subprojects block would set up as a mod of its own.
+include 'example-common'
+include 'example-fabric'
+include 'example-neoforge'
+project(':example-common').projectDir = file('example/common')
+project(':example-fabric').projectDir = file('example/fabric')
+project(':example-neoforge').projectDir = file('example/neoforge')

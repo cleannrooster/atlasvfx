@@ -24,6 +24,68 @@ public interface TrailWindow {
     boolean done(FxLife life);
 
     /**
+     * The whole surface, always, at full strength, for as long as the surface has anything to
+     * draw: a recorded trail, which keeps its own head and tail and knows when it is over.
+     */
+    static TrailWindow follow() {
+        return new TrailWindow() {
+            @Override
+            public float head(FxLife life, float tickDelta) {
+                return 1.0f;
+            }
+
+            @Override
+            public float tail(FxLife life, float tickDelta) {
+                return 0.0f;
+            }
+
+            @Override
+            public float fade(FxLife life, float tickDelta) {
+                return 1.0f;
+            }
+
+            @Override
+            public boolean done(FxLife life) {
+                return false;
+            }
+        };
+    }
+
+    /**
+     * The whole surface for {@code ticks}, then a fade over {@code fadeTicks}; released early, it
+     * fades from then. For a surface that animates itself - a thrust extending.
+     */
+    static TrailWindow hold(int ticks, int fadeTicks) {
+        int hold = Math.max(1, ticks);
+        int fade = Math.max(1, fadeTicks);
+        return new TrailWindow() {
+            @Override
+            public float head(FxLife life, float tickDelta) {
+                return 1.0f;
+            }
+
+            @Override
+            public float tail(FxLife life, float tickDelta) {
+                return 0.0f;
+            }
+
+            @Override
+            public float fade(FxLife life, float tickDelta) {
+                float elapsed = Math.max(life.age() + tickDelta - hold, life.sinceRelease(tickDelta));
+                if (!life.released() && elapsed <= 0.0f) {
+                    return 1.0f;
+                }
+                return Math.max(0.0f, Math.min(1.0f, 1.0f - elapsed / fade));
+            }
+
+            @Override
+            public boolean done(FxLife life) {
+                return life.age() >= hold + fade || (life.released() && life.age() - life.releasedAt() >= fade);
+            }
+        };
+    }
+
+    /**
      * A swing: the head runs through the whole surface over the swing, keeping {@code trail} of it
      * showing behind, then the whole thing fades. Released early, it fades from then.
      *

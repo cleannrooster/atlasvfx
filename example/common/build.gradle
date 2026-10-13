@@ -1,0 +1,17 @@
+architectury {
+    common(rootProject.enabled_platforms.split(','))
+}
+
+dependencies {
+    // Only for the @Environment annotations, which become each loader's own.
+    modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
+    modApi "dev.architectury:architectury:$rootProject.architectury_api_version"
+
+    // Compiled against the library's common module. compileOnly on purpose: at run time the
+    // library is there as a real mod, and an implementation dependency would put a second, loose
+    // copy of its classes on the classpath.
+    compileOnly(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+}
+
+// Dev only: never published.
+tasks.withType(AbstractPublishToMaven).configureEach { enabled = false }

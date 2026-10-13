@@ -11,6 +11,9 @@ description = '''
 Visual effects drawn from the game's own sprite atlases: soft light, rings, beams, motes and shapes, with no textures of its own.
 '''
 
+[[mixins]]
+config = "atlasvfx.mixins.json"
+
 [[dependencies.atlasvfx]]
 modId = "neoforge"
 type = "required"

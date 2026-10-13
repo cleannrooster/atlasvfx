@@ -1,5 +1,9 @@
 package dev.eann.atlasvfx.fabric;
 
+import dev.eann.atlasvfx.character.OverlayFeatureRenderer;
+import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback;
+import net.minecraft.client.render.entity.LivingEntityRenderer;
+
 import dev.eann.atlasvfx.AtlasVfx;
 import dev.eann.atlasvfx.WorldRenderHook;
 import net.fabricmc.api.ClientModInitializer;
@@ -11,6 +15,12 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
  * {@link WorldRenderHook} - and starts the library.
  */
 public final class AtlasVfxFabricClient implements ClientModInitializer {
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static OverlayFeatureRenderer overlays(LivingEntityRenderer renderer) {
+        return new OverlayFeatureRenderer(renderer);
+    }
+
     @Override
     public void onInitializeClient() {
         WorldRenderEvents.AFTER_TRANSLUCENT.register(context ->
@@ -26,6 +36,10 @@ public final class AtlasVfxFabricClient implements ClientModInitializer {
                                 : MinecraftClient.getInstance().getBufferBuilders().getEntityVertexConsumers(),
                         context.camera(),
                         context.tickCounter().getTickDelta(false))));
+
+        // Every living entity's renderer gets the overlay layer, through Fabric API's own hook.
+        LivingEntityFeatureRendererRegistrationCallback.EVENT.register((type, renderer, helper, context) ->
+                helper.register(overlays(renderer)));
 
         AtlasVfx.initClient();
     }

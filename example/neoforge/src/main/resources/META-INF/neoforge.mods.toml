@@ -1,0 +1,26 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "atlasvfx_example"
+version = "${version}"
+displayName = "AtlasVFX Example"
+authors = "eann"
+description = '''
+A dev-only mod that uses AtlasVFX like a content mod would. Never published.
+'''
+
+[[dependencies.atlasvfx_example]]
+modId = "atlasvfx"
+type = "required"
+versionRange = "[0,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.atlasvfx_example]]
+modId = "architectury"
+type = "required"
+versionRange = "[13.0.0,)"
+ordering = "AFTER"
+side = "BOTH"

@@ -1,0 +1,22 @@
+{
+  "name": "White Mage",
+  "description": "Robes the colour of first snow.",
+  "geo": "atlasvfx_example:geo/fire_mage.geo.json",
+  "texture": "atlasvfx_example:textures/entity/white_mage.png",
+  "animations": "atlasvfx_example:animations/adventurers.animations.json",
+  "posing": "follow",
+  "clips": {
+    "prefix": "animation.v2.mage.",
+    "stance": "stance",
+    "advance": "advance",
+    "backstep": "backstep",
+    "lateral_left": "lateral_left",
+    "lateral_right": "lateral_right",
+    "swing": [
+      "cast_quick",
+      "flame_sweep"
+    ],
+    "use": "cast_long",
+    "swing_speed": 1.4
+  }
+}

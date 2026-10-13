@@ -1,0 +1,79 @@
+plugins {
+    id 'com.gradleup.shadow'
+}
+
+architectury {
+    platformSetupLoomIde()
+    neoForge()
+}
+
+configurations {
+    common {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentNeoForge.extendsFrom common
+
+    shadowBundle {
+        canBeResolved = true
+        canBeConsumed = false
+    }
+}
+
+// Projects configure alphabetically, so example-* would come before the library's own; the
+// library's project has to be configured first for its shadow jar to be referenced.
+evaluationDependsOn(':neoforge')
+def libraryJar = rootProject.project(':neoforge').tasks.named('shadowJar')
+
+// Mods run beside the example in its dev client only, never a dependency of the library: Better
+// Combat poses the vanilla player through PlayerAnimator, which is what a replacement model in
+// follow mode should pick up.
+repositories {
+    maven {
+        url = 'https://api.modrinth.com/maven'
+        content { includeGroup 'maven.modrinth' }
+    }
+    maven { url = 'https://maven.kosmx.dev/' }
+    maven { url = 'https://maven.shedaniel.me/' }
+}
+
+dependencies {
+    neoForge "net.neoforged:neoforge:$rootProject.neoforge_version"
+    modImplementation "dev.architectury:architectury-neoforge:$rootProject.architectury_api_version"
+
+    common(project(path: ':example-common', configuration: 'namedElements')) { transitive = false }
+    shadowBundle project(path: ':example-common', configuration: 'transformProductionNeoForge')
+
+    // Compiled against the library...
+    compileOnly(project(path: ':common', configuration: 'namedElements')) { transitive = false }
+    // ...and run with it as a real mod: its dev shadow jar holds its metadata, widener and
+    // classes in one place, which is what the dev client's mod discovery needs.
+    localRuntime files(libraryJar.flatMap { it.archiveFile })
+
+    modLocalRuntime("maven.modrinth:better-combat:2.3.0+1.21.1-neoforge") { transitive = false }
+    modLocalRuntime("dev.kosmx.player-anim:player-animation-lib-forge:2.0.4+1.21.1") { transitive = false }
+    modLocalRuntime("me.shedaniel.cloth:cloth-config-neoforge:15.0.140") { transitive = false }
+}
+
+tasks.named('runClient') { dependsOn libraryJar }
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand version: inputs.properties.version
+    }
+}
+
+shadowJar {
+    configurations = [project.configurations.shadowBundle]
+    archiveClassifier = 'dev-shadow'
+}
+
+remapJar {
+    inputFile.set shadowJar.archiveFile
+}
+
+// Dev only: never published.
+tasks.withType(AbstractPublishToMaven).configureEach { enabled = false }

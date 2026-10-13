@@ -1,0 +1,9 @@
+{
+  "key.categories.atlasvfx": "AtlasVFX",
+  "key.atlasvfx.appearance": "Choose Appearance",
+  "atlasvfx.appearance.title": "Appearance",
+  "atlasvfx.appearance.default": "Your Own Skin",
+  "atlasvfx.appearance.default.description": "Seen as yourself, with your skin and armor",
+  "atlasvfx.appearance.disabled": "Appearances are turned off here",
+  "atlasvfx.appearance.prompt": "Choose how others see you. You can change it any time with %s."
+}

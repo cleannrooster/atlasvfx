@@ -646,6 +646,14 @@ public final class FxPainter {
 
     // ---- helpers -------------------------------------------------------------------------------------------
 
+    /**
+     * Where the viewer is, in the same terms positions are given in: the camera, in the world.
+     * For shapes that look different from different sides - a shell brightest where it turns away.
+     */
+    public Vec3d viewer() {
+        return new Vec3d(eye.x + origin.x, eye.y + origin.y, eye.z + origin.z);
+    }
+
     /** Where a position is relative to this painter's origin. */
     public Vector3f local(Vec3d at) {
         return new Vector3f((float) (at.x - origin.x), (float) (at.y - origin.y), (float) (at.z - origin.z));

@@ -1,0 +1,22 @@
+{
+  "name": "Forsaken Juggernaut",
+  "description": "Plate, a maul, and no hurry.",
+  "geo": "atlasvfx_example:geo/juggernaut.geo.json",
+  "texture": "atlasvfx_example:textures/entity/juggernaut.png",
+  "animations": "atlasvfx_example:animations/adventurers.animations.json",
+  "posing": "follow",
+  "clips": {
+    "prefix": "animation.v2.jugg.",
+    "stance": "stance",
+    "advance": "advance",
+    "backstep": "backstep",
+    "lateral_left": "lateral_left",
+    "lateral_right": "lateral_right",
+    "swing": [
+      "heavy_swing",
+      "slam"
+    ],
+    "use": "brace",
+    "swing_speed": 1.4
+  }
+}

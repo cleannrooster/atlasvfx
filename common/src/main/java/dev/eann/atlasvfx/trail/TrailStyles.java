@@ -54,6 +54,43 @@ public final class TrailStyles {
     }
 
     /**
+     * A streak behind something moving: a soft glowing ribbon in one colour, paling to a hot core
+     * at its head and fading toward its tail. Untextured light, so it reads in any light.
+     */
+    public static TrailStyle streak(int rgb) {
+        int hot = FxColor.mix(rgb, FxColor.WHITE, 0.65f);
+        TrailLayer glow = new TrailLayer(0.0f, 1.0f, 4, 1.0f,
+                FxCurve.easeIn(1.3f), FxCurve.HUMP,
+                FxGradient.between(rgb, FxColor.mix(rgb, FxColor.WHITE, 0.25f)), 0.7f, 0.0f, TrailEdging.NONE);
+        TrailLayer core = new TrailLayer(0.32f, 0.68f, 2, 1.0f,
+                FxCurve.easeIn(2.0f), FxCurve.HUMP,
+                FxGradient.between(rgb, hot), 0.9f, 0.0f, TrailEdging.NONE);
+        return new TrailStyle(List.of(glow, core), null, UvWindow.FULL, FxBlend.GLOW, 0, 0.0f, 0.0f, 1.0f, 24,
+                HIT_RED, 3.0f, 0.0f);
+    }
+
+    /**
+     * A thrust in one colour: a deep wake the full width of the lane, a saturated body inside it
+     * and a pale spine down the middle, brightening toward the point - the slash's palette laid
+     * along a lane instead of round an arc.
+     */
+    public static TrailStyle thrust(int baseRgb) {
+        Palette palette = Palette.of(baseRgb);
+        FxCurve sides = FxCurve.HUMP.between(0.65f, 1.0f);
+        TrailLayer wake = new TrailLayer(0.0f, 1.0f, 6, 1.0f,
+                FxCurve.SMOOTH.between(0.25f, 1.0f), sides,
+                FxGradient.constant(palette.wake()), 0.45f, 0.6f, TrailEdging.NONE);
+        TrailLayer body = new TrailLayer(0.15f, 0.85f, 4, 1.0f,
+                FxCurve.SMOOTH.between(0.25f, 1.0f), sides,
+                FxGradient.constant(palette.body()), 0.65f, 0.8f, TrailEdging.NONE);
+        TrailLayer spine = new TrailLayer(0.36f, 0.64f, 4, 1.0f,
+                FxCurve.easeIn(1.5f).between(0.2f, 1.0f), FxCurve.HUMP,
+                FxGradient.constant(palette.edge()), 0.8f, 1.0f, TrailEdging.NONE);
+        return new TrailStyle(List.of(wake, body, spine), SWEEP, SWEEP_WINDOW, FxBlend.LIT, 7, 0.06f, 0.0f, 1.0f,
+                28, HIT_RED, 3.0f, 1.25f);
+    }
+
+    /**
      * The three colours of a slash, from one.
      *
      * @param edge pale, for the razor edge
