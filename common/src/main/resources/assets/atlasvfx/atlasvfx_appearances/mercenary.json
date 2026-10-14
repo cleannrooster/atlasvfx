@@ -1,9 +1,9 @@
 {
-  "name": "Forsaken Mercenary",
-  "description": "A crossbow for whoever pays.",
-  "geo": "atlasvfx_example:geo/mercenary.geo.json",
-  "texture": "atlasvfx_example:textures/entity/mercenary.png",
-  "animations": "atlasvfx_example:animations/adventurers.animations.json",
+  "name": "atlasvfx.appearance.mercenary",
+  "description": "atlasvfx.appearance.mercenary.description",
+  "geo": "atlasvfx:geo/adventurers/mercenary.geo.json",
+  "texture": "atlasvfx:textures/entity/adventurers/mercenary.png",
+  "animations": "atlasvfx:animations/adventurers.animations.json",
   "posing": "follow",
   "clips": {
     "prefix": "animation.v2.merc.",

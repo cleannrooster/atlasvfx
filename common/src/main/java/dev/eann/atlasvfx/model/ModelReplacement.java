@@ -18,7 +18,8 @@ import java.util.Set;
  * @param texture    the texture it is drawn in
  * @param animations an animation file for {@link Posing#ANIMATED}; null for none
  * @param animator   what it plays when, for {@link Posing#ANIMATED}; null to hold its rest pose
- * @param hides      the body's own parts left undrawn; the skin and first-person arm always are
+ * @param hides      the body's own parts left undrawn - the skin and first-person arm too, unless it
+ *                   is drawn over them, as armour is
  * @param followLook whether its head - if it has a plainly named one - turns where the body looks
  */
 public record ModelReplacement(Identifier geo, Identifier texture, @Nullable Identifier animations, Posing posing,
@@ -51,7 +52,7 @@ public record ModelReplacement(Identifier geo, Identifier texture, @Nullable Ide
 
     /** Whether the body's own layers for {@code part} are left undrawn. */
     public boolean hides(BodyPart part) {
-        return part == BodyPart.SKIN || part == BodyPart.ARM || hides.contains(part);
+        return hides.contains(part);
     }
 
     public ModelReplacement hiding(Set<BodyPart> parts) {

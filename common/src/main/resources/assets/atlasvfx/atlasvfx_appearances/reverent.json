@@ -1,0 +1,8 @@
+{
+  "name": "atlasvfx.appearance.reverent",
+  "description": "atlasvfx.appearance.reverent.description",
+  "geo": "atlasvfx:geo/adventurers/reverent.geo.json",
+  "texture": "atlasvfx:textures/entity/adventurers/reverent.png",
+  "posing": "follow",
+  "keep_skin": true
+}

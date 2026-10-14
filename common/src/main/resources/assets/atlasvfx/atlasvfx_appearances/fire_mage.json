@@ -1,9 +1,9 @@
 {
-  "name": "White Mage",
-  "description": "Robes the colour of first snow.",
-  "geo": "atlasvfx_example:geo/fire_mage.geo.json",
-  "texture": "atlasvfx_example:textures/entity/white_mage.png",
-  "animations": "atlasvfx_example:animations/adventurers.animations.json",
+  "name": "atlasvfx.appearance.fire_mage",
+  "description": "atlasvfx.appearance.fire_mage.description",
+  "geo": "atlasvfx:geo/adventurers/fire_mage.geo.json",
+  "texture": "atlasvfx:textures/entity/adventurers/fire_mage.png",
+  "animations": "atlasvfx:animations/adventurers.animations.json",
   "posing": "follow",
   "clips": {
     "prefix": "animation.v2.mage.",

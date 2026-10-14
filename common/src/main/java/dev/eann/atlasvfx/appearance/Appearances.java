@@ -41,6 +41,7 @@ import java.util.Set;
  *   "posing": "follow",                               // the default: the body's own pose,
  *                                                     // or "animated": its own clips
  *   "hides": ["armor", "cape", "elytra", "head", "other"],               // optional
+ *   "keep_skin": false,                               // true: drawn over your own skin, as armour is
  *   "clips": {"prefix": "animation.v2.trickster.", "stance": "stance", "advance": "advance",
  *             "backstep": "backstep", "lateral_left": "lateral_left", "lateral_right": "lateral_right",
  *             "swing": ["cross_slash_r", "cross_slash_l"], "use": "throw_mobile", "swing_speed": 1.4}
@@ -108,13 +109,17 @@ public final class Appearances {
         Identifier geo = Identifier.of(json.get("geo").getAsString());
         Identifier texture = Identifier.of(json.get("texture").getAsString());
         Identifier animations = json.has("animations") ? Identifier.of(json.get("animations").getAsString()) : null;
-        Set<BodyPart> hides = BodyPart.WORN;
+        Set<BodyPart> hides = EnumSet.copyOf(BodyPart.WORN);
         if (json.has("hides")) {
-            Set<BodyPart> parts = EnumSet.noneOf(BodyPart.class);
+            hides = EnumSet.of(BodyPart.SKIN, BodyPart.ARM);
             for (JsonElement element : json.getAsJsonArray("hides")) {
-                parts.add(BodyPart.valueOf(element.getAsString().toUpperCase(Locale.ROOT)));
+                hides.add(BodyPart.valueOf(element.getAsString().toUpperCase(Locale.ROOT)));
             }
-            hides = parts;
+        }
+        if (json.has("keep_skin") && json.get("keep_skin").getAsBoolean()) {
+            // Drawn over the body, as armour is: the skin and first-person arm stay.
+            hides.remove(BodyPart.SKIN);
+            hides.remove(BodyPart.ARM);
         }
         boolean animated = json.has("posing") && json.get("posing").getAsString().equalsIgnoreCase("animated");
         ClipAnimator animator = json.has("clips") ? ClipAnimator.parse(json.getAsJsonObject("clips")) : null;

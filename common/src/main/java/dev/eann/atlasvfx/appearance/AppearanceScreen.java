@@ -31,6 +31,8 @@ public final class AppearanceScreen extends Screen {
     private static final int ROW_HEIGHT = 36;
     /** The game's own grey for secondary text. */
     private static final int GRAY = 0xA0A0A0;
+    /** Darker, for what cannot be chosen yet. */
+    private static final int LOCKED = 0x707070;
     private static final int HEADER = 33;
     private static final int FOOTER = 33;
 
@@ -39,6 +41,7 @@ public final class AppearanceScreen extends Screen {
     private final boolean prompt;
     private @Nullable Identifier chosen;
     private AppearanceList list;
+    private ButtonWidget done;
 
     public AppearanceScreen(@Nullable Screen parent) {
         this(parent, false);
@@ -65,10 +68,10 @@ public final class AppearanceScreen extends Screen {
         list.select(selected);
         addDrawableChild(list);
         int buttons = height - FOOTER + 6;
-        addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> {
+        done = addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, button -> {
             AppearanceList.Entry entry = list.getSelectedOrNull();
             Identifier pick = entry == null ? null : entry.id();
-            if (!Objects.equals(pick, chosen)) {
+            if (!Objects.equals(pick, chosen) && !AppearanceClient.locked(pick)) {
                 AppearanceClient.choose(pick);
             }
             close();
@@ -89,6 +92,8 @@ public final class AppearanceScreen extends Screen {
         }
         ClientPlayerEntity player = client == null ? null : client.player;
         AppearanceList.Entry selected = list.getSelectedOrNull();
+        // A locked one may be looked at, not chosen.
+        done.active = selected == null || !AppearanceClient.locked(selected.id());
         if (player == null || selected == null) {
             return;
         }
@@ -99,13 +104,30 @@ public final class AppearanceScreen extends Screen {
         int size = Math.max(20, Math.min((bottom - top) * 2 / 5, (right - left) / 2));
         preview(context, selected.id(), player, left, top, right, bottom, size, mouseX, mouseY);
         context.drawCenteredTextWithShadow(textRenderer, selected.name(), (left + right) / 2, bottom + 4, 0xFFFFFF);
-        if (selected.description() != null) {
+        if (AppearanceClient.locked(selected.id())) {
+            context.drawCenteredTextWithShadow(textRenderer, lockedBy(selected.id()), (left + right) / 2, bottom + 16,
+                    LOCKED);
+        } else if (selected.description() != null) {
             List<OrderedText> lines = textRenderer.wrapLines(selected.description(), right - left);
             for (int i = 0; i < Math.min(2, lines.size()); i++) {
                 context.drawCenteredTextWithShadow(textRenderer, lines.get(i), (left + right) / 2, bottom + 16 + i * 10,
                         GRAY);
             }
         }
+    }
+
+    /** "Locked: <the advancement's title>", or its id if this client does not know it. */
+    static Text lockedBy(@Nullable Identifier appearance) {
+        Identifier advancement = AppearanceClient.requirement(appearance);
+        Text name = advancement == null ? Text.empty() : Text.literal(advancement.toString());
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (advancement != null && client.getNetworkHandler() != null) {
+            var entry = client.getNetworkHandler().getAdvancementHandler().get(advancement);
+            if (entry != null && entry.value().display().isPresent()) {
+                name = entry.value().display().get().getTitle();
+            }
+        }
+        return Text.translatable("atlasvfx.appearance.locked", name);
     }
 
     /** Draws {@code player} wearing {@code appearance}, as nowhere else sees it: only for this draw. */
@@ -192,12 +214,13 @@ public final class AppearanceScreen extends Screen {
                     // Facing out of the screen, a little to one side, as a portrait.
                     preview(context, id, player, x + 2, y + 1, x + 30, y + entryHeight - 1, 14, x + 26, y + 4);
                 }
-                context.drawTextWithShadow(client.textRenderer, name, x + 36, y + 5, 0xFFFFFF);
-                Text below = description != null ? description
+                boolean locked = AppearanceClient.locked(id);
+                context.drawTextWithShadow(client.textRenderer, name, x + 36, y + 5, locked ? GRAY : 0xFFFFFF);
+                Text below = locked ? lockedBy(id) : description != null ? description
                         : id == null ? Text.empty() : Text.literal(id.toString());
                 List<OrderedText> lines = client.textRenderer.wrapLines(below, entryWidth - 40);
                 if (!lines.isEmpty()) {
-                    context.drawTextWithShadow(client.textRenderer, lines.get(0), x + 36, y + 17, GRAY);
+                    context.drawTextWithShadow(client.textRenderer, lines.get(0), x + 36, y + 17, locked ? LOCKED : GRAY);
                 }
             }
 

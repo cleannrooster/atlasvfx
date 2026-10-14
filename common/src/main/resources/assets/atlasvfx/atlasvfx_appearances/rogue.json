@@ -1,9 +1,9 @@
 {
-  "name": "Forsaken Rogue",
-  "description": "Daggers, a hood, and the dark.",
-  "geo": "atlasvfx_example:geo/rogue.geo.json",
-  "texture": "atlasvfx_example:textures/entity/rogue.png",
-  "animations": "atlasvfx_example:animations/adventurers.animations.json",
+  "name": "atlasvfx.appearance.rogue",
+  "description": "atlasvfx.appearance.rogue.description",
+  "geo": "atlasvfx:geo/adventurers/rogue.geo.json",
+  "texture": "atlasvfx:textures/entity/adventurers/rogue.png",
+  "animations": "atlasvfx:animations/adventurers.animations.json",
   "posing": "follow",
   "clips": {
     "prefix": "animation.v2.trickster.",

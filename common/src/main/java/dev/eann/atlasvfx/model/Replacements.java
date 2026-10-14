@@ -1,5 +1,6 @@
 package dev.eann.atlasvfx.model;
 
+import dev.eann.atlasvfx.character.BodyParts;
 import dev.eann.atlasvfx.character.CharacterEffects;
 import dev.eann.atlasvfx.parity.LayerSource;
 import dev.eann.atlasvfx.parity.ProviderSeam;
@@ -18,6 +19,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -64,6 +67,15 @@ public final class Replacements {
         }
         BakedGeo model = GeoAssets.model(replacement.geo());
         return model == null ? null : new Active(replacement, model);
+    }
+
+    /**
+     * Whether {@code feature} - armour, a cape, another mod's layer - draws a part {@code entity}'s
+     * replacement stands in for, so is left out entirely.
+     */
+    public static boolean hidesFeature(Entity entity, Object feature) {
+        Active active = active(entity);
+        return active != null && active.replacement().hides(BodyParts.of(feature.getClass()));
     }
 
     /** After the vanilla model's draw: poses and draws {@code entity}'s replacement, if it has one. */
@@ -159,13 +171,14 @@ public final class Replacements {
         } else if (vanilla instanceof BipedEntityModel<?> biped) {
             GeoRig rig = model.rig();
             if (replacement.followLook()) {
-                follow(model.bone(rig.head()), biped.head);
+                follow(model, rig.head(), biped.head);
             }
-            follow(model.bone(rig.body()), biped.body);
-            follow(model.bone(rig.rightArm()), biped.rightArm);
-            follow(model.bone(rig.leftArm()), biped.leftArm);
-            follow(model.bone(rig.rightLeg()), biped.rightLeg);
-            follow(model.bone(rig.leftLeg()), biped.leftLeg);
+            follow(model, rig.body(), biped.body);
+            follow(model, rig.waist(), biped.body);
+            follow(model, rig.rightArm(), biped.rightArm);
+            follow(model, rig.leftArm(), biped.leftArm);
+            follow(model, rig.rightLeg(), biped.rightLeg);
+            follow(model, rig.leftLeg(), biped.leftLeg);
         }
         if (vanilla instanceof BipedEntityModel<?> biped && partlyHidden(biped)) {
             showAsVanilla(model, biped);
@@ -195,6 +208,7 @@ public final class Replacements {
         Map<String, ModelPart> vanilla = new HashMap<>();
         putIfNamed(vanilla, rig.head(), biped.head);
         putIfNamed(vanilla, rig.body(), biped.body);
+        putIfNamed(vanilla, rig.waist(), biped.body);
         putIfNamed(vanilla, rig.rightArm(), biped.rightArm);
         putIfNamed(vanilla, rig.leftArm(), biped.leftArm);
         putIfNamed(vanilla, rig.rightLeg(), biped.rightLeg);
@@ -243,7 +257,7 @@ public final class Replacements {
         ModelPart bone = model.bone(name);
         if (bone != null && vanilla.visible) {
             bone.resetTransform();
-            follow(bone, vanilla);
+            follow(model, name, vanilla);
         }
     }
 
@@ -267,18 +281,31 @@ public final class Replacements {
         return show;
     }
 
-    /** Moves a bone by however far the vanilla part it stands for has moved from its own rest. */
-    static void follow(@Nullable ModelPart bone, ModelPart part) {
+    /**
+     * Moves bone {@code name} as the vanilla part it stands for has moved from its own rest: by the
+     * same turn, about the vanilla part's pivot rather than its own - so a bone whose pivot is not
+     * quite the vanilla one, or a waist turning with the body from the hips, swings with the body as
+     * if it hung from it.
+     */
+    static void follow(BakedGeo model, @Nullable String name, ModelPart part) {
+        ModelPart bone = model.bone(name);
         if (bone == null) {
             return;
         }
         ModelTransform rest = part.getDefaultTransform();
-        bone.pivotX += part.pivotX - rest.pivotX;
-        bone.pivotY += part.pivotY - rest.pivotY;
-        bone.pivotZ += part.pivotZ - rest.pivotZ;
-        bone.pitch += part.pitch - rest.pitch;
-        bone.yaw += part.yaw - rest.yaw;
-        bone.roll += part.roll - rest.roll;
+        float pitch = part.pitch - rest.pitch;
+        float yaw = part.yaw - rest.yaw;
+        float roll = part.roll - rest.roll;
+        // Where the bone's pivot is from the vanilla part's, at rest, and where the turn takes it.
+        float[] at = restPivot(model, name);
+        Vector3f offset = new Vector3f(at[0] - rest.pivotX, at[1] - rest.pivotY, at[2] - rest.pivotZ);
+        Vector3f turned = new Quaternionf().rotationZYX(roll, yaw, pitch).transform(new Vector3f(offset));
+        bone.pivotX += part.pivotX - rest.pivotX + turned.x - offset.x;
+        bone.pivotY += part.pivotY - rest.pivotY + turned.y - offset.y;
+        bone.pivotZ += part.pivotZ - rest.pivotZ + turned.z - offset.z;
+        bone.pitch += pitch;
+        bone.yaw += yaw;
+        bone.roll += roll;
     }
 
     /** Turns the head bone, if there is one, where the body looks, over whatever it is playing. */

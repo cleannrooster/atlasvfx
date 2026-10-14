@@ -2,7 +2,8 @@
 
 Visual effects for Minecraft 1.21.1 (Fabric and NeoForge, via Architectury) drawn entirely from
 the game's own sprite atlases: soft light, rings, beams, blades, holes into the End, motes and
-short-lived shapes. It ships no textures, so effects follow whatever resource pack is on.
+short-lived shapes. Its effects ship no textures, so they follow whatever resource pack is on; the
+only art it carries is the optional player appearances below.
 
 Extracted from Mo' Mana's effects engine.
 
@@ -82,8 +83,12 @@ adds what you hold. `overdraw` draws the look over your body instead of swapping
 **Appearances** let players choose a model to be seen as. They're off by default: set
 `"appearances": {"enabled": true}` in `config/atlasvfx.json` (the server's copy decides). Then the
 `O` key opens the appearance screen. It also opens by itself on a player's first join, once nothing
-else is on screen (`"prompt_on_first_join"`, on by default). Appearances come from resource packs, as
-`assets/<namespace>/atlasvfx_appearances/<name>.json`; see `Appearances` for the format.
+else is on screen (`"prompt_on_first_join"`, on by default). Eleven come with AtlasVFX: RPG Minibosses' Forsaken
+adventurers (Rogue, Templar, Juggernaut, Fire Mage, White Mage, Dark Mage, Mercenary), and the Raider,
+Reverent, Ruffian and Spellblade. More come from
+resource packs, as `assets/<namespace>/atlasvfx_appearances/<name>.json`; see `Appearances` for the
+format, and AtlasVFX's own for examples. A data pack can lock any of them behind an advancement:
+`data/<namespace>/atlasvfx_unlocks/<name>.json` with `{"advancement": "<id>"}`.
 
 `/atlasvfx parity [self|target|arm] [diff <name|last>]` is for checking render compatibility
 rather than effects. It lists every render layer one entity is drawn with for one frame: who asked

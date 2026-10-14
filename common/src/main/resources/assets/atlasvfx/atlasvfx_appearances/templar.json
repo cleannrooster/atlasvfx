@@ -1,9 +1,9 @@
 {
-  "name": "Forsaken Templar",
-  "description": "A sword sworn to a fallen order.",
-  "geo": "atlasvfx_example:geo/templar.geo.json",
-  "texture": "atlasvfx_example:textures/entity/templar.png",
-  "animations": "atlasvfx_example:animations/adventurers.animations.json",
+  "name": "atlasvfx.appearance.templar",
+  "description": "atlasvfx.appearance.templar.description",
+  "geo": "atlasvfx:geo/adventurers/templar.geo.json",
+  "texture": "atlasvfx:textures/entity/adventurers/templar.png",
+  "animations": "atlasvfx:animations/adventurers.animations.json",
   "posing": "follow",
   "clips": {
     "prefix": "animation.v2.templar.",

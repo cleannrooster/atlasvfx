@@ -73,6 +73,14 @@ subprojects {
         }
         repositories {
             mavenLocal()
+            // The public Maven: a git repo beside this one, served by GitHub Pages at
+            // https://cleannrooster.github.io/atlasvfx-maven/. Publish with
+            // `publishAllPublicationsToPagesRepository`, then commit and push that repo.
+            // A version once pushed there is never published again: bump it instead.
+            maven {
+                name = 'pages'
+                url = file("$rootDir/../atlasvfx-maven")
+            }
         }
     }
 }

@@ -20,11 +20,16 @@ import java.util.Map;
  * root everything hangs from, and turning it would swing the legs with the torso. A {@code torso} or
  * {@code chest} under it is taken instead when there is one.</p>
  *
+ * <p>A waist - {@code waist} or {@code bipedWaist}, or failing those {@code armorWaist} - goes with
+ * the body, as GeckoLib-style armour rigs mean it to: hips and belts that lean as the torso does.</p>
+ *
  * @param head     null if no bone is plainly a head
  * @param body     null if no bone is a torso that holds no limbs
+ * @param waist    null if no bone is plainly a waist that holds no limbs
  */
 public record GeoRig(@Nullable String head, @Nullable String body, @Nullable String rightArm,
-                     @Nullable String leftArm, @Nullable String rightLeg, @Nullable String leftLeg) {
+                     @Nullable String leftArm, @Nullable String rightLeg, @Nullable String leftLeg,
+                     @Nullable String waist) {
 
     private static final List<String> HEADS = List.of("head", "headbone", "bipedhead", "mainhead");
     private static final List<String> BODIES = List.of("torso", "chest", "upperbody", "bipedbody", "body");
@@ -32,6 +37,7 @@ public record GeoRig(@Nullable String head, @Nullable String body, @Nullable Str
     private static final List<String> LEFT_ARMS = List.of("leftarm", "armleft", "bipedleftarm", "larm", "arml");
     private static final List<String> RIGHT_LEGS = List.of("rightleg", "legright", "bipedrightleg", "rleg", "legr");
     private static final List<String> LEFT_LEGS = List.of("leftleg", "legleft", "bipedleftleg", "lleg", "legl");
+    private static final List<String> WAISTS = List.of("waist", "bipedwaist", "armorwaist");
 
     /** Reads the rig from a model's bones. */
     public static GeoRig of(GeoModel model) {
@@ -61,7 +67,15 @@ public record GeoRig(@Nullable String head, @Nullable String body, @Nullable Str
                 break;
             }
         }
-        return new GeoRig(head, body, rightArm, leftArm, rightLeg, leftLeg);
+        String waist = null;
+        for (String candidate : WAISTS) {
+            String name = byKey.get(candidate);
+            if (name != null && !name.equals(body) && !holdsAny(name, parents, rightArm, leftArm, rightLeg, leftLeg)) {
+                waist = name;
+                break;
+            }
+        }
+        return new GeoRig(head, body, rightArm, leftArm, rightLeg, leftLeg, waist);
     }
 
     /** A bone name with case and separators dropped: {@code Right_Arm} and {@code rightArm} alike. */

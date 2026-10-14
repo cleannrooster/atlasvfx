@@ -19,6 +19,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -41,6 +42,8 @@ public final class AppearanceClient {
     static final int QUIET_TICKS = 40;
 
     private static final Map<UUID, Identifier> CHOICES = new HashMap<>();
+    private static Map<Identifier, Identifier> requirements = Map.of();
+    private static Set<Identifier> unlocked = Set.of();
     private static boolean enabled;
     private static boolean promptPending;
     private static int quiet;
@@ -52,8 +55,15 @@ public final class AppearanceClient {
         KeyMappingRegistry.register(OPEN);
         NetworkManager.registerReceiver(NetworkManager.Side.S2C, AppearancePayloads.Sync.ID,
                 AppearancePayloads.Sync.CODEC, (payload, context) -> context.queue(() -> sync(payload)));
+        NetworkManager.registerReceiver(NetworkManager.Side.S2C, AppearancePayloads.Unlocks.ID,
+                AppearancePayloads.Unlocks.CODEC, (payload, context) -> context.queue(() -> {
+                    requirements = payload.requirements();
+                    unlocked = payload.unlocked();
+                }));
         ClientPlayerEvent.CLIENT_PLAYER_QUIT.register(player -> {
             CHOICES.clear();
+            requirements = Map.of();
+            unlocked = Set.of();
             enabled = false;
             promptPending = false;
             quiet = 0;
@@ -66,6 +76,16 @@ public final class AppearanceClient {
     /** Whether the server lets players choose an appearance. */
     public static boolean enabled() {
         return enabled;
+    }
+
+    /** Whether the player playing has yet to unlock {@code appearance}; never for their own skin. */
+    public static boolean locked(@Nullable Identifier appearance) {
+        return appearance != null && requirements.containsKey(appearance) && !unlocked.contains(appearance);
+    }
+
+    /** The advancement that unlocks {@code appearance}; null if nothing locks it. */
+    public static @Nullable Identifier requirement(@Nullable Identifier appearance) {
+        return appearance == null ? null : requirements.get(appearance);
     }
 
     /** What {@code player} chose; null for their own skin. */

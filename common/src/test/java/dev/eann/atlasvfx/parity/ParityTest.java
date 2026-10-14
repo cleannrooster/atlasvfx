@@ -172,6 +172,16 @@ class ParityTest {
     }
 
     @Test
+    @DisplayName("each hidden layer gets a buffer of its own, so a glint can join two of them")
+    void hiddenBuffersAreDistinct() {
+        net.minecraft.client.render.VertexConsumer first = new Seam.Hidden();
+        net.minecraft.client.render.VertexConsumer second = new Seam.Hidden();
+        assertTrue(first != second);
+        // What the game's armour glint does with the two it asks for.
+        net.minecraft.client.render.VertexConsumers.union(first, second);
+    }
+
+    @Test
     @DisplayName("the draw scope nests and survives an unbalanced exit")
     void drawScope() {
         DrawScope.reset();

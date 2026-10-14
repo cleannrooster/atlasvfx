@@ -12,6 +12,10 @@ public final class ReplacementsAccess {
         return Replacements.partlyHidden(biped);
     }
 
+    public static void follow(BakedGeo model, String name, net.minecraft.client.model.ModelPart part) {
+        Replacements.follow(model, name, part);
+    }
+
     public static void showAsVanilla(BakedGeo model, BipedEntityModel<?> biped) {
         Replacements.showAsVanilla(model, biped);
     }

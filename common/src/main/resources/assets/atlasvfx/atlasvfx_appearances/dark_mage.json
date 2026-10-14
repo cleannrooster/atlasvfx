@@ -1,9 +1,9 @@
 {
-  "name": "Forsaken Fire Mage",
-  "description": "Robes singed at every hem.",
-  "geo": "atlasvfx_example:geo/fire_mage.geo.json",
-  "texture": "atlasvfx_example:textures/entity/fire_mage.png",
-  "animations": "atlasvfx_example:animations/adventurers.animations.json",
+  "name": "atlasvfx.appearance.dark_mage",
+  "description": "atlasvfx.appearance.dark_mage.description",
+  "geo": "atlasvfx:geo/adventurers/fire_mage.geo.json",
+  "texture": "atlasvfx:textures/entity/adventurers/black_mage.png",
+  "animations": "atlasvfx:animations/adventurers.animations.json",
   "posing": "follow",
   "clips": {
     "prefix": "animation.v2.mage.",

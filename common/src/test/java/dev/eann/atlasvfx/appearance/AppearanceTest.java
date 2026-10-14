@@ -56,7 +56,8 @@ class AppearanceTest {
                 JsonParser.parseString(ROGUE.replace("\"posing\": \"animated\",", "")).getAsJsonObject());
         assertEquals(ModelReplacement.Posing.FOLLOW_BODY, following.replacement().posing());
         assertEquals(ModelReplacement.Posing.ANIMATED, following.animated().posing());
-        assertEquals(Set.of(BodyPart.ARMOR, BodyPart.CAPE), replacement.hides());
+        // What the file lists, and the skin and first-person arm it stands in for.
+        assertEquals(Set.of(BodyPart.SKIN, BodyPart.ARM, BodyPart.ARMOR, BodyPart.CAPE), replacement.hides());
         assertTrue(replacement.hides(BodyPart.SKIN));
         ClipAnimator clips = (ClipAnimator) replacement.animator();
         assertEquals("animation.v2.trickster.stance", clips.stance());
@@ -67,6 +68,49 @@ class AppearanceTest {
         // One effect for every body wearing it.
         assertTrue(rogue.effect() == rogue.effect());
         assertTrue(rogue.effect().replacement() == replacement);
+    }
+
+    @Test
+    @DisplayName("an appearance kept over the skin hides armour but not the skin or first-person arm")
+    void keepSkin() {
+        Appearance reverent = Appearances.parse(Identifier.of("atlasvfx", "reverent"), JsonParser.parseString("""
+                {"name": "Reverent", "geo": "atlasvfx:geo/adventurers/reverent.geo.json",
+                 "texture": "atlasvfx:textures/entity/adventurers/reverent.png", "keep_skin": true}""")
+                .getAsJsonObject());
+        ModelReplacement replacement = reverent.replacement();
+        assertFalse(replacement.hides(BodyPart.SKIN));
+        assertFalse(replacement.hides(BodyPart.ARM));
+        assertTrue(replacement.hides(BodyPart.ARMOR));
+        assertTrue(replacement.hides(BodyPart.OTHER));
+        assertFalse(replacement.hides(BodyPart.HELD));
+    }
+
+    @Test
+    @DisplayName("a waist turns with the body about the body's pivot, as if it hung from it")
+    void waistFollowsBody() {
+        BakedGeo geo = GeoBaker.bake(GeoModel.parse(JsonParser.parseString("""
+                {"minecraft:geometry": [{"description": {"texture_width": 64, "texture_height": 64}, "bones": [
+                  {"name": "bipedBody", "pivot": [0, 24, 0]},
+                  {"name": "bipedRightArm", "pivot": [-5, 22, 0]},
+                  {"name": "bipedLeftArm", "pivot": [5, 22, 0]},
+                  {"name": "bipedRightLeg", "pivot": [-1.9, 12, 0]},
+                  {"name": "bipedLeftLeg", "pivot": [1.9, 12, 0]},
+                  {"name": "bipedHead", "pivot": [0, 24, 0]},
+                  {"name": "bipedWaist", "pivot": [0, 12, 0],
+                   "cubes": [{"origin": [-4, 10, -2], "size": [8, 3, 4], "uv": [0, 0]}]}
+                ]}]}""").getAsJsonObject()));
+        assertEquals("bipedWaist", geo.rig().waist());
+        assertEquals("bipedBody", geo.rig().body());
+        BipedEntityModel<LivingEntity> biped = vanilla();
+        // Sneaking: the body leans forward about the neck.
+        biped.body.pitch = 0.5f;
+        geo.reset();
+        ReplacementsAccess.follow(geo, "bipedWaist", biped.body);
+        ModelPart waist = geo.bone("bipedWaist");
+        assertEquals(0.5f, waist.pitch, 1.0e-6f);
+        // 12 pixels below the neck, swung forward and up with it.
+        assertEquals((float) (12 * Math.cos(0.5)), waist.pivotY, 1.0e-4f);
+        assertEquals((float) (12 * Math.sin(0.5)), waist.pivotZ, 1.0e-4f);
     }
 
     @Test
@@ -97,6 +141,15 @@ class AppearanceTest {
         assertTrue(read.full());
         assertTrue(read.prompt());
         assertEquals(choices, read.choices());
+
+        RegistryByteBuf unlocks = new RegistryByteBuf(Unpooled.buffer(), DynamicRegistryManager.EMPTY);
+        AppearancePayloads.Unlocks sent = new AppearancePayloads.Unlocks(
+                Map.of(Identifier.of("atlasvfx", "rogue"), Identifier.of("rpg-minibosses", "slay_rogue")),
+                Set.of(Identifier.of("atlasvfx", "rogue")));
+        AppearancePayloads.Unlocks.CODEC.encode(unlocks, sent);
+        assertEquals(sent, AppearancePayloads.Unlocks.CODEC.decode(unlocks));
+        assertEquals(Identifier.of("minecraft", "story/mine_diamond"), AppearanceUnlocks.parse(JsonParser.parseString(
+                "{\"advancement\": \"minecraft:story/mine_diamond\"}").getAsJsonObject()));
 
         RegistryByteBuf choose = new RegistryByteBuf(Unpooled.buffer(), DynamicRegistryManager.EMPTY);
         AppearancePayloads.Choose.CODEC.encode(choose, AppearancePayloads.Choose.of(null));

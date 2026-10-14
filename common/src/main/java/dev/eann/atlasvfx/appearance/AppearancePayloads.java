@@ -7,9 +7,11 @@ import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /** What client and server say about appearances. Safe on a dedicated server. */
@@ -37,6 +39,53 @@ public final class AppearancePayloads {
 
         private static Choose read(RegistryByteBuf buffer) {
             return new Choose(buffer.readBoolean() ? Optional.of(buffer.readIdentifier()) : Optional.empty());
+        }
+
+        @Override
+        public Id<? extends CustomPayload> getId() {
+            return ID;
+        }
+    }
+
+    /**
+     * "These appearances are locked, by these advancements, and you have unlocked these." Server to
+     * client, to the player it is about: as they join, as they earn one, and as data reloads.
+     */
+    public record Unlocks(Map<Identifier, Identifier> requirements, Set<Identifier> unlocked)
+            implements CustomPayload {
+
+        public static final CustomPayload.Id<Unlocks> ID =
+                new CustomPayload.Id<>(Identifier.of(AtlasVfxCommon.MOD_ID, "appearance_unlocks"));
+
+        public static final PacketCodec<RegistryByteBuf, Unlocks> CODEC = PacketCodec.of(Unlocks::write, Unlocks::read);
+
+        public Unlocks {
+            requirements = Map.copyOf(requirements);
+            unlocked = Set.copyOf(unlocked);
+        }
+
+        private void write(RegistryByteBuf buffer) {
+            buffer.writeVarInt(requirements.size());
+            requirements.forEach((appearance, advancement) -> {
+                buffer.writeIdentifier(appearance);
+                buffer.writeIdentifier(advancement);
+            });
+            buffer.writeVarInt(unlocked.size());
+            unlocked.forEach(buffer::writeIdentifier);
+        }
+
+        private static Unlocks read(RegistryByteBuf buffer) {
+            int count = buffer.readVarInt();
+            Map<Identifier, Identifier> requirements = new LinkedHashMap<>();
+            for (int i = 0; i < count; i++) {
+                requirements.put(buffer.readIdentifier(), buffer.readIdentifier());
+            }
+            int unlockedCount = buffer.readVarInt();
+            Set<Identifier> unlocked = new HashSet<>();
+            for (int i = 0; i < unlockedCount; i++) {
+                unlocked.add(buffer.readIdentifier());
+            }
+            return new Unlocks(requirements, unlocked);
         }
 
         @Override

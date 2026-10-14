@@ -1,0 +1,7 @@
+{
+  "name": "atlasvfx.appearance.ruffian",
+  "description": "atlasvfx.appearance.ruffian.description",
+  "geo": "atlasvfx:geo/adventurers/ruffian.geo.json",
+  "texture": "atlasvfx:textures/entity/adventurers/ruffian.png",
+  "posing": "follow"
+}

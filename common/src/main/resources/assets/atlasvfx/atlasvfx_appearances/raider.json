@@ -1,0 +1,7 @@
+{
+  "name": "atlasvfx.appearance.raider",
+  "description": "atlasvfx.appearance.raider.description",
+  "geo": "atlasvfx:geo/adventurers/raider.json",
+  "texture": "atlasvfx:textures/entity/adventurers/raider.png",
+  "posing": "follow"
+}

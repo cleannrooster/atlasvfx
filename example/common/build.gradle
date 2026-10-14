@@ -15,3 +15,11 @@ dependencies {
 
 // Dev only: never published.
 tasks.withType(AbstractPublishToMaven).configureEach { enabled = false }
+
+// The Architectury transform reads the library's classes off its classpath; in a parallel build it
+// would read them while the library's own tasks are still rewriting them ("Type ... not present").
+// Ordering only: nothing extra runs.
+evaluationDependsOn(':common')
+tasks.matching { it.name.startsWith('transformProduction') }.configureEach {
+    mustRunAfter(project(':common').tasks)
+}

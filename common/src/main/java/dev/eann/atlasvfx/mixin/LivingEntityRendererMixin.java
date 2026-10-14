@@ -38,6 +38,11 @@ abstract class LivingEntityRendererMixin {
                     animationProgress, headYaw, headPitch);
             return;
         }
+        if (Replacements.hidesFeature(entity, feature)) {
+            // Armour, a cape, another mod's layer - a part the replacement stands in for is not drawn
+            // at all, rather than built for nothing into a layer nobody sees.
+            return;
+        }
         ProviderSeam.enter(new LayerSource.Feature(feature.getClass()));
         try {
             original.call(feature, matrices, provider, light, entity, limbAngle, limbDistance, tickDelta,

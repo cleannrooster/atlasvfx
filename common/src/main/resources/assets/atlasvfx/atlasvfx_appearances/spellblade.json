@@ -1,0 +1,7 @@
+{
+  "name": "atlasvfx.appearance.spellblade",
+  "description": "atlasvfx.appearance.spellblade.description",
+  "geo": "atlasvfx:geo/adventurers/spellblade.geo.json",
+  "texture": "atlasvfx:textures/entity/adventurers/spellblade_armor.png",
+  "posing": "follow"
+}

@@ -1,9 +1,9 @@
 {
-  "name": "Dark Mage",
-  "description": "Robes the colour of a starless night.",
-  "geo": "atlasvfx_example:geo/fire_mage.geo.json",
-  "texture": "atlasvfx_example:textures/entity/black_mage.png",
-  "animations": "atlasvfx_example:animations/adventurers.animations.json",
+  "name": "atlasvfx.appearance.white_mage",
+  "description": "atlasvfx.appearance.white_mage.description",
+  "geo": "atlasvfx:geo/adventurers/fire_mage.geo.json",
+  "texture": "atlasvfx:textures/entity/adventurers/white_mage.png",
+  "animations": "atlasvfx:animations/adventurers.animations.json",
   "posing": "follow",
   "clips": {
     "prefix": "animation.v2.mage.",

@@ -136,6 +136,12 @@ default.
 - Each choice is kept with the world (overworld saved data, by player UUID) and shown to everyone:
   all of them as a player joins, and theirs to everyone else. The server keeps only the id; what an
   appearance looks like is the client's.
+- Eleven appearances ship with AtlasVFX (`atlasvfx:rogue` and so on):
+  - RPG Minibosses' Forsaken adventurers, each with its geometry, texture and `v2` clips: the Rogue,
+    Templar, Juggernaut, Fire Mage with White Mage and Dark Mage recolours, and Mercenary;
+  - the Raider, Reverent, Ruffian and Spellblade, which follow the body. The Reverent is worn over
+    your own skin. Their names and descriptions
+  are translatable (`atlasvfx.appearance.<name>`). They show only once appearances are enabled.
 - Appearances are data: `assets/<namespace>/atlasvfx_appearances/<name>.json` names a geometry,
   texture, optional animation file, `posing` (`animated` or `follow`), optional `hides`, and
   `clips`: stance, advance, backstep, lateral left and right, a list of swings, use, and swing
@@ -144,9 +150,30 @@ default.
 - An appearance follows the body by default (`"posing": "follow"`), so walking, sneaking, Better
   Combat and PlayerAnimator poses carry over. Its `clips` are kept either way, and
   `Appearance.animated()` gives the same model playing them.
+- Appearances can be unlocked by advancement. A data pack locks one with
+  `data/<namespace>/atlasvfx_unlocks/<name>.json` holding `{"advancement": "<id>"}`. It lives in
+  data rather than with the look, because the server decides and a dedicated server reads no
+  resource packs.
+  - The server refuses a locked choice, and takes an appearance off a player who no longer has its
+    advancement (on join and on `/reload`).
+  - Earning the advancement unlocks it at once.
+  - The screen still lists locked appearances, greyed with "Locked: <advancement title>". They can
+    be previewed, but Done is disabled while one is selected.
+  - An advancement that doesn't exist (its mod missing) locks nothing and is reported once.
+  - AtlasVFX locks nothing itself. The example mod locks the Juggernaut behind "Diamonds!" to show
+    it working.
+- `"keep_skin": true` in an appearance file draws the model over your own skin and first-person
+  arm, as armour is, for armour-style models that don't cover the whole body. Armour and other worn
+  layers are still hidden. `ModelReplacement.hides` now lists exactly what's hidden, with the skin
+  and arm in it by default.
 - `ClipAnimator`: the clip picker those files describe, also usable from code.
 - `CharacterEffects.preview(entity, effect, draw)` shows an effect on an entity for one draw only.
   It's what the screen's likenesses use.
+
+Fixed: a replaced body's armour crashed through ArmorModelAPI ("Duplicate delegates"), because
+the game's armour glint was handed the same hidden buffer twice. Feature layers for parts a
+replacement hides (armour, capes, elytra, head items, other mods' layers) are now skipped entirely
+rather than drawn into nothing, and each hidden layer gets a buffer of its own.
 
 Fixed: a replacement no longer draws whole in first person while an animation mod draws the
 player's arms there (PlayerAnimator's first-person mode, as Better Combat's swings use). A
@@ -164,7 +191,10 @@ GeckoLib.
   and negative sizes included (`FaceCuboid`): each face takes the file's area in the corner order
   the game's own box cuboid uses, and faces follow GeckoLib's naming (a file's east is the part's
   west). A face's `uv_rotation` isn't applied.
-- `GeoRig` finds the head, torso, arms and legs by bone name. The head is any plainly named head
+- `GeoRig` finds the head, torso, arms, legs and waist by bone name. A waist (`waist`,
+  `bipedWaist`, or `armorWaist`) goes with the body, as GeckoLib-style armour rigs mean it to. In
+  follow mode a bone turns about its vanilla part's pivot rather than its own, so a waist leans
+  from the body and a bone whose pivot isn't quite vanilla's swings in place. The head is any plainly named head
   bone, or failing that the outermost bone with "head" in its name, never armour. A "body" bone that
   holds the limbs isn't taken as the torso.
 - `GeoAnimation.parseAll` reads Bedrock animation files: numbers and sums of numbers
@@ -219,13 +249,10 @@ Changed:
   is already opened by NeoForge's access transformer and Fabric API's transitive access wideners.
 
 Development: an `example` mod (`example-fabric`, `example-neoforge`), never published, uses the
-library the way a content mod would. It carries RPG Minibosses' five Forsaken adventurers (Rogue,
-Templar, Juggernaut, Fire Mage with White Mage and Dark Mage recolours, Mercenary) as appearance
-files, each with its geometry, texture and `v2` clips. Like any chosen appearance they follow the
-body; the example command's `animated` plays their own clips. Its dev runs have appearances turned on, so the screen lists all five.
-`/atlasvfx_example_client <rogue|templar|juggernaut|fire_mage|mercenary>` wears one, animated from
-how you move, swing and start using an item. `follow` makes it follow your vanilla pose instead,
-`target` puts it on what you look at, and `off` takes it off. The example's dev clients also run Better Combat 2.3.0, PlayerAnimator 2.0.4 and Cloth
+library the way a content mod would. `/atlasvfx_example_client <adventurer>` tries on one of the
+appearances AtlasVFX ships, `animated` plays its own clips instead of following the body, `target`
+puts it on what you look at, and `off` takes it off. Its dev runs have appearances turned on.
+The example's dev clients also run Better Combat 2.3.0, PlayerAnimator 2.0.4 and Cloth
 Config 15.0.140 (dev runtime only, never a dependency of the library), so a replacement in follow
 mode can be checked against Better Combat's attack poses. `./gradlew :example-fabric:runClient` (or
 `:example-neoforge:runClient`), then `/atlasvfx_example cue <name>`, `telegraph <shape> [ticks]`

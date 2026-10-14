@@ -3,6 +3,7 @@ package dev.eann.atlasvfx.example;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import dev.architectury.event.events.client.ClientCommandRegistrationEvent;
 import dev.architectury.event.events.client.ClientCommandRegistrationEvent.ClientCommandSourceStack;
+import dev.eann.atlasvfx.AtlasVfx;
 import dev.eann.atlasvfx.appearance.Appearance;
 import dev.eann.atlasvfx.appearance.Appearances;
 import dev.eann.atlasvfx.character.CharacterEffects;
@@ -15,10 +16,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * RPG Minibosses' Forsaken adventurers - Rogue, Templar, Juggernaut, Fire Mage with its White Mage
- * and Dark Mage recolours, and Mercenary - as appearances: each is a file in
- * {@code assets/atlasvfx_example/atlasvfx_appearances/}, naming its geometry, texture and own clips. They show on the appearance screen (the {@code O} key, with
- * {@code appearances.enabled} on in {@code config/atlasvfx.json}), and here for trying on anything:
+ * Trying on the appearances AtlasVFX ships - RPG Minibosses' Forsaken adventurers: Rogue, Templar,
+ * Juggernaut, Fire Mage with its White Mage and Dark Mage recolours, and Mercenary - without the
+ * appearance screen. They are on the screen too (the {@code O} key, with {@code appearances.enabled}
+ * on in {@code config/atlasvfx.json}); this also puts them on other things.
+ *
  *
  * <p>{@code /atlasvfx_example_client <adventurer>} puts one on you directly, following your pose as
  * a chosen appearance does; {@code animated} has it play its own clips instead, and {@code target}
@@ -28,7 +30,7 @@ import java.util.List;
 final class Adventurers {
 
     static final List<String> NAMES = List.of("rogue", "templar", "juggernaut", "fire_mage", "white_mage", "dark_mage",
-            "mercenary");
+            "mercenary", "raider", "reverent", "ruffian", "spellblade");
 
     private Adventurers() {
     }
@@ -38,7 +40,7 @@ final class Adventurers {
             LiteralArgumentBuilder<ClientCommandSourceStack> root =
                     ClientCommandRegistrationEvent.literal(AtlasVfxExample.MOD_ID + "_client");
             for (String name : NAMES) {
-                Identifier id = Identifier.of(AtlasVfxExample.MOD_ID, name);
+                Identifier id = Identifier.of(AtlasVfx.MOD_ID, name);
                 root.then(ClientCommandRegistrationEvent.literal(name)
                         .executes(context -> wear(id, false, false))
                         .then(ClientCommandRegistrationEvent.literal("animated")

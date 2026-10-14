@@ -43,8 +43,10 @@ final class Seam {
             BodyPart part = BodyParts.of(source);
             if (part != null && replacement.hides(part)) {
                 // A part the replacement stands in for: every layer of it, glint and all, goes
-                // unseen. Its geometry is still built by its own renderer, and dropped here.
-                VertexConsumer hidden = Hidden.INSTANCE;
+                // unseen. Its geometry is still built by its own renderer, and dropped here. A new
+                // one each time: the game joins two buffers for a glint, and refuses to join one
+                // buffer with itself.
+                VertexConsumer hidden = new Hidden();
                 return session != null && source != null ? session.recordHidden(layer, source, hidden) : hidden;
             }
         }
@@ -87,7 +89,6 @@ final class Seam {
 
     /** Takes vertices and keeps none. */
     static final class Hidden implements VertexConsumer {
-        static final Hidden INSTANCE = new Hidden();
 
         @Override
         public VertexConsumer vertex(float x, float y, float z) {
